@@ -109,7 +109,7 @@ const oldEnvironment = { NODE_ENV: process.env.NODE_ENV, TRUSTGO_RENTAL_MODE: pr
     rejectsCode(() => getAvailableStoreOffers(past), 'invalid_search');
     const exact = { ...form(), pickupDate: '2030-01-01', pickupTime: '04:00', returnDate: '2030-01-02' };
     rejectsCode(() => getAvailableStoreOffers(exact), 'invalid_search');
-    assert.deepEqual(getAvailableStoreOffers({ ...exact, pickupTime: '04:01' }), []);
+    assert.equal(getAvailableStoreOffers({ ...exact, pickupTime: '04:01' }).length, 6);
   });
   await test('depot wall clocks use their own zones across normal and DST dates', () => {
     assert.equal(depotDateTime('2030-01-01', '10:00', 'Asia/Tokyo'), '2030-01-01T01:00:00.000Z');
@@ -117,12 +117,12 @@ const oldEnvironment = { NODE_ENV: process.env.NODE_ENV, TRUSTGO_RENTAL_MODE: pr
     assert.equal(depotDateTime('2030-07-01', '10:00', 'America/Los_Angeles'), '2030-07-01T17:00:00.000Z');
     rejectsCode(() => depotDateTime('2030-03-10', '02:30', 'America/Los_Angeles'), 'invalid_search');
   });
-  await test('pick-up entering the unavailable three-day window rejects creation within a valid quote', () => {
+  await test('pick-up passing the current instant rejects creation within a valid quote', () => {
     const base = Date.now;
     try {
-      Date.now = () => Date.parse('2030-01-01T17:59:00Z');
+      Date.now = () => Date.parse('2030-01-04T17:59:00Z');
       const rate = rental.createRateDetails({ ...form(), pickupDate: '2030-01-04', returnDate: '2030-01-05' }, 'toyota-rav4-suv@US-LAX-01', 'en');
-      Date.now = () => Date.parse('2030-01-01T18:00:01Z');
+      Date.now = () => Date.parse('2030-01-04T18:00:01Z');
       const owner = { sessionId: key() };
       rejectsCode(() => rental.createReservation(input(rate), owner), 'rate_unavailable');
       assert.deepEqual(rental.listBookings(owner), []);

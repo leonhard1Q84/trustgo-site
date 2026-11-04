@@ -30,7 +30,7 @@ export function SearchLoadingProgressBar({ label }: { label?: string }) {
       {/* Horizontal Progress Bar Track */}
       <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
         <div
-          className="h-full rounded-full bg-brand transition-all duration-700 ease-out"
+          className="h-full rounded-full bg-brand transition-all duration-700 ease-out motion-reduce:transition-none"
           style={{ width: `${progress}%` }}
         />
       </div>
@@ -38,7 +38,7 @@ export function SearchLoadingProgressBar({ label }: { label?: string }) {
       {/* Spinner & Single Main Title */}
       {label && (
         <div className="flex items-center gap-2 pt-0.5">
-          <Loader2 className="h-4 w-4 animate-spin text-foreground-secondary shrink-0" />
+          <Loader2 className="h-4 w-4 animate-spin motion-reduce:animate-none text-foreground-secondary shrink-0" aria-hidden="true" />
           <span className="text-xs sm:text-sm font-semibold text-foreground">{label}</span>
         </div>
       )}

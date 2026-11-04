@@ -1,8 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { Search } from 'lucide-react';
+import { Loader2, Search } from 'lucide-react';
 import type { RouteLanguage } from '@/i18n/locales';
 import { useI18n } from '@/i18n/useI18n';
 import { Button } from '@/shared/ui/button';
@@ -16,6 +15,7 @@ import {
 import { LocationField } from './search/location-field';
 import { DateRangeField } from './search/date-range-field';
 import { DriverAgeSelect, LicenseCountrySelect } from './search/inline-selects';
+import { useSearchNavigation } from './SearchNavigationProvider';
 
 const LICENSE_COOKIE = 'tg_license_country';
 
@@ -31,14 +31,13 @@ interface SearchBarProps {
 }
 
 export function SearchBar({ lang, variant = 'card', initial, onSubmitted, className }: SearchBarProps) {
-  const router = useRouter();
+  const { search, searching: submitting } = useSearchNavigation();
   const { t } = useI18n(lang);
   const [form, setForm] = useState<SearchFormState>(
     () => initial ?? createDefaultSearchForm(getDefaultLicenseCountry(lang))
   );
   const [openField, setOpenField] = useState<OpenField>(null);
   const [errors, setErrors] = useState<{ pickup?: string; return?: string }>({});
-  const [submitting, setSubmitting] = useState(false);
 
   // Restore the saved license country and roll statically rendered default dates forward.
   useEffect(() => {
@@ -60,6 +59,7 @@ export function SearchBar({ lang, variant = 'card', initial, onSubmitted, classN
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (submitting) return;
     if (!hasLocation(form.pickup)) {
       setErrors({ pickup: t('search_error_pickup') });
       setOpenField('pickup');
@@ -81,9 +81,8 @@ export function SearchBar({ lang, variant = 'card', initial, onSubmitted, classN
       if (error.code !== 'invalid_driver') throw error;
     }
     setErrors({});
-    setSubmitting(true);
-    router.push(`/${lang}/rent?${buildSearchQuery(form)}`);
     onSubmitted?.();
+    search(`/${lang}/rent?${buildSearchQuery(form)}`);
   };
 
   const fieldOpen = (field: Exclude<OpenField, null>) => ({
@@ -206,9 +205,10 @@ export function SearchBar({ lang, variant = 'card', initial, onSubmitted, classN
             type="submit"
             disabled={submitting}
             className="h-12 w-full gap-2 text-base font-semibold lg:h-14 lg:w-14 lg:shrink-0 lg:p-0"
-            aria-label={t('search_submit')}
+            aria-label={t(submitting ? 'search_loading_vehicles' : 'search_submit')}
+            aria-busy={submitting}
           >
-            <Search className="h-5 w-5" aria-hidden="true" />
+            {submitting ? <Loader2 className="h-5 w-5 animate-spin motion-reduce:animate-none" aria-hidden="true" /> : <Search className="h-5 w-5" aria-hidden="true" />}
             <span className="lg:sr-only">
               {submitting ? t('search_loading_vehicles') : t('search_submit')}
             </span>
@@ -230,9 +230,9 @@ export function SearchBar({ lang, variant = 'card', initial, onSubmitted, classN
         <div className="flex flex-col gap-2 lg:flex-row lg:items-start">
           <div className="flex min-w-0 flex-1 flex-col gap-2 md:flex-row">{locationFields}</div>
           {dateField}
-          <Button type="submit" disabled={submitting} className="h-14 shrink-0 gap-2 lg:w-14 lg:px-0" aria-label={t('search_submit')}>
-            <Search className="h-5 w-5" aria-hidden="true" />
-            <span className="lg:sr-only">{t('search_submit')}</span>
+          <Button type="submit" disabled={submitting} className="h-14 shrink-0 gap-2 lg:w-14 lg:px-0" aria-label={t(submitting ? 'search_loading_vehicles' : 'search_submit')} aria-busy={submitting}>
+            {submitting ? <Loader2 className="h-5 w-5 animate-spin motion-reduce:animate-none" aria-hidden="true" /> : <Search className="h-5 w-5" aria-hidden="true" />}
+            <span className="lg:sr-only">{t(submitting ? 'search_loading_vehicles' : 'search_submit')}</span>
           </Button>
         </div>
         <div className="mt-1">{options}</div>
@@ -251,8 +251,8 @@ export function SearchBar({ lang, variant = 'card', initial, onSubmitted, classN
         {dateField}
       </div>
       <div className="mt-1">{options}</div>
-      <Button type="submit" disabled={submitting} className="mt-3 w-full gap-2 text-base">
-        <Search className="h-5 w-5" aria-hidden="true" />
+      <Button type="submit" disabled={submitting} className="mt-3 w-full gap-2 text-base" aria-busy={submitting}>
+        {submitting ? <Loader2 className="h-5 w-5 animate-spin motion-reduce:animate-none" aria-hidden="true" /> : <Search className="h-5 w-5" aria-hidden="true" />}
         <span>{submitting ? t('search_loading_vehicles') : t('search_submit')}</span>
       </Button>
     </form>

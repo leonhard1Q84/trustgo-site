@@ -17,6 +17,7 @@ import { aggregateVehicleGroups, type VehicleGroup } from '@/modules/rental-sear
 import { TravelVehicleIllustration } from '@/shared/ui/illustrations/TravelVehicleIllustration';
 import { SkylineHorizon } from '@/shared/ui/illustrations/SkylineHorizon';
 import { VehicleGroupCard } from './vehicle-group-card';
+import { useSearchNavigation } from './SearchNavigationProvider';
 
 type CategoryFilter = 'all' | 'suv' | 'sedan' | 'people_mover';
 type SortKey = 'recommended' | 'price_low' | 'rating' | 'size';
@@ -64,11 +65,12 @@ export function RentalResultsView({
   const [noticeOpen, setNoticeOpen] = useState(true);
   const [freeCancellation, setFreeCancellation] = useState(false);
   const [depositFree, setDepositFree] = useState(false);
+  const { refresh } = useSearchNavigation();
 
   const { searchExpiryDialog, isSearchRefreshing } = useSearchExpiry({
     isActive: true,
     resetKey: `${pickupLocation}-${licenseCountry}-${rentalDays}`,
-    onRefresh: async () => window.location.reload(),
+    onRefresh: refresh,
     lang,
   });
 

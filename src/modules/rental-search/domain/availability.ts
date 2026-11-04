@@ -1,7 +1,7 @@
 import { depotDateTime } from './depot-time';
 import { hasLocalInventory } from './local-inventory';
 import { FLEET_STORE_OFFERS, type StoreOffer } from './store-offers';
-import { type SearchFormState, type SearchLocation, parseDateInput, toDateInput } from './search-form';
+import { type SearchFormState, type SearchLocation, getRentalDays, parseDateInput, toDateInput } from './search-form';
 import { findStoresWithinRadius, getStoreByCode, isStoreEligible } from '@/modules/destination-search/store-directory';
 import { poiCatalog } from '@/modules/destination-search/poi-catalog';
 import { RentalError, normalizeLicenseCountry } from '@/modules/reservation/domain/validation';
@@ -52,10 +52,9 @@ export function getAvailableStoreOffers(form: SearchFormState, now = Date.now())
     }
   });
   if (candidates.length && !timely.length) throw new RentalError('invalid_search', 400);
+  // Use the same rental-day calculation as the displayed duration and quote,
+  // including partial days and depot wall-clock dates across DST changes.
+  if (!hasLocalInventory(getRentalDays(form.pickupDate, form.returnDate, form.pickupTime, form.returnTime))) return [];
   return timely.filter(o => returnStores.has(o.storeCode))
-    .filter(offer => {
-      const pickup = Date.parse(depotDateTime(form.pickupDate, form.pickupTime, offer.timeZone));
-      return hasLocalInventory(pickup, now);
-    })
     .map(offer => ({ ...offer, distanceKm: pickupStores.get(offer.storeCode)! }));
 }

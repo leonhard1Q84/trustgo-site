@@ -1,6 +1,6 @@
-/** Rolling internal test inventory; FE remains the source of live availability. */
-const MINIMUM_LEAD_TIME_MS = 72 * 60 * 60_000;
+/** Internal demo inventory; FE remains the source of live availability. */
+const MAXIMUM_RENTAL_DAYS = 5;
 
-export function hasLocalInventory(pickupInstant: number, now: number): boolean {
-  return pickupInstant - now >= MINIMUM_LEAD_TIME_MS;
+export function hasLocalInventory(rentalDays: number): boolean {
+  return Number.isInteger(rentalDays) && rentalDays >= 1 && rentalDays <= MAXIMUM_RENTAL_DAYS;
 }

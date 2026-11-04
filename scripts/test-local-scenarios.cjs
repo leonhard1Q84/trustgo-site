@@ -70,36 +70,60 @@ const cards = {
   authentication_failed: '4000000000003063', processing: '4000002500003155', unknown: '4000000000000119', unavailable: '4000000000000259',
 };
 (async () => {
-  await test('rolling inventory has no stock within three days and full stock from 72 hours onward', () => {
-    for (const lead of [1, 24, 48, 71]) assert.deepEqual(getAvailableStoreOffers(tripFromNow(lead)), []);
-    for (const lead of [72, 73, 96, 240]) {
-      const offers = getAvailableStoreOffers(tripFromNow(lead));
-      assert.equal(offers.length, 6);
-      assert.equal(new Set(offers.map(o => o.vehicleId)).size, 4);
+  await test('same-day, near and distant searches have stock for rentals up to five days', () => {
+    for (const lead of [1 / 60, 1, 24, 48, 71, 72, 73, 96, 240]) {
+      for (const hours of [1, 24, 48, 72, 96, 120]) {
+        const offers = getAvailableStoreOffers(tripFromNow(lead, hours));
+        assert.equal(offers.length, 6, `${lead} hours ahead / ${hours} rental hours`);
+        assert.equal(new Set(offers.map(o => o.vehicleId)).size, 4);
+      }
+      assert.deepEqual(getAvailableStoreOffers(tripFromNow(lead, 120 + 1 / 60)), []);
+      assert.deepEqual(getAvailableStoreOffers(tripFromNow(lead, 144)), []);
     }
   });
-  await test('inventory recomputes at each read, including exact boundary and later calendar dates', () => {
+  await test('near-term stock remains available as time advances and on later calendar dates', () => {
     const boundary = tripFromNow(72);
     assert.equal(getAvailableStoreOffers(boundary, now - 1).length, 6);
     assert.equal(getAvailableStoreOffers(boundary, now).length, 6);
-    assert.deepEqual(getAvailableStoreOffers(boundary, now + 1), []);
+    assert.equal(getAvailableStoreOffers(boundary, now + 1).length, 6);
     const start = now;
     try {
       now += 180 * 86400000;
       assert.equal(getAvailableStoreOffers(tripFromNow(96)).length, 6);
-      assert.deepEqual(getAvailableStoreOffers(tripFromNow(24)), []);
+      assert.equal(getAvailableStoreOffers(tripFromNow(24)).length, 6);
       assert.deepEqual(getAvailableStoreOffers(tripFromNow(24, 240)), []);
     } finally { now = start; }
   });
-  await test('rolling inventory uses each depot timezone and direct rate IDs cannot bypass it', () => {
-    const sold = tripFromNow(24);
+  await test('five-day inventory uses depot dates across zones and DST and direct rates cannot bypass it', () => {
+    const sold = tripFromNow(24, 144);
     const tokyo = hours => ({ ...tripFromNow(hours, 48, 'Asia/Tokyo'), pickup: { label: 'Tokyo', storeCode: 'KLDJ01' } });
-    assert.deepEqual(getAvailableStoreOffers(tokyo(24)), []);
+    assert.equal(getAvailableStoreOffers(tokyo(24)).length, 4);
     assert.equal(getAvailableStoreOffers(tokyo(72)).length, 4);
+    assert.deepEqual(getAvailableStoreOffers({ ...tripFromNow(24, 144, 'Asia/Tokyo'), pickup: tokyo(24).pickup }), []);
+    for (const [pickupDate, returnDate] of [['2030-03-08', '2030-03-13'], ['2030-11-01', '2030-11-06']]) {
+      const search = form(`${pickupDate}T10:00`, `${returnDate}T10:00`);
+      assert.equal(getAvailableStoreOffers(search).length, 6);
+      assert.deepEqual(getAvailableStoreOffers({ ...search, returnTime: '10:01' }), []);
+    }
     rejectsCode(() => rental.createRateDetails(sold, 'toyota-rav4-suv@US-LAX-01', 'zh'), 'rate_unavailable');
   });
-  await test('creation rechecks the rolling stock window even while its quote remains valid', () => {
-    const rate = rental.createRateDetails(tripFromNow(72 + 1 / 60), 'toyota-rav4-suv@US-LAX-01', 'zh');
+  await test('near-term five-day rental can be quoted, reserved, paid and cancelled in every language', () => {
+    for (const lang of ['en', 'zh', 'ja', 'es', 'ko']) {
+      const search = { ...tripFromNow(24, 120, 'Asia/Tokyo'), pickup: { label: 'Tokyo', storeCode: 'KLDJ01' } };
+      const rate = rental.createRateDetails(search, 'toyota-rav4-suv@KLDJ01', lang);
+      assert.equal(rate.trip.rentalDays, 5);
+      const owner = actor();
+      const booking = rental.createReservation(input(rate), owner);
+      assert.equal(booking.status, 'PENDING_PAYMENT');
+      assert.equal(rental.payBooking(booking.confirmationCode, key(), owner).status, 'CONFIRMED');
+      const estimate = rental.previewCancellation(booking.confirmationCode, owner);
+      assert.equal(rental.cancelReservation(booking.confirmationCode, {
+        reason: 'bm_reason_plans', version: estimate.version, idempotencyKey: key(),
+      }, owner).status, 'CANCELLED');
+    }
+  });
+  await test('creation still rejects a passed pick-up instant even while its quote remains valid', () => {
+    const rate = rental.createRateDetails(tripFromNow(1 / 60), 'toyota-rav4-suv@US-LAX-01', 'zh');
     const start = now;
     try {
       now += 61000;
@@ -279,7 +303,8 @@ const cards = {
         const pickup = selectionToLocation({ selectionType: 'POI', poiId: poi.poiId, label: poi.label,
           serviceLocationCount: poi.serviceLocationCount, associatedStoreCode: poi.nearestStoreCode }, poi.label);
         assert.equal(getAvailableStoreOffers({ ...form(), pickup }).length, 6);
-        assert.equal(getAvailableStoreOffers({ ...tripFromNow(24), pickup }).length, 0);
+        assert.equal(getAvailableStoreOffers({ ...tripFromNow(24), pickup }).length, 6);
+        assert.equal(getAvailableStoreOffers({ ...tripFromNow(24, 144), pickup }).length, 0);
       }
       assert.equal(destinations.searchLocations('US-LAX-01', language).exactStore?.storeCode, 'US-LAX-01');
       assert.equal(destinations.searchLocations('US-LAX-02', language).exactStore?.storeCode, 'US-LAX-02');

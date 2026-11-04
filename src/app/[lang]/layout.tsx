@@ -13,6 +13,7 @@ import { LanguageProvider } from '@/i18n/LanguageContext';
 import { LocaleNavigationProvider } from '@/i18n/LocaleNavigation';
 import { SiteDocument, siteMetadata, siteViewport } from '@/shared/ui/site-document';
 import { AuthProvider, AuthModal } from '@/modules/customer-account/public-api';
+import { SearchNavigationProvider } from '@/modules/rental-search/public-api';
 import type { Metadata } from 'next';
 
 export const viewport = siteViewport;
@@ -78,7 +79,9 @@ export default async function LocaleLayout({
               <div className="flex flex-col min-h-dvh">
                 <SiteHeader lang={lang} />
                 <GlobalPaymentReminder />
-                <main className="flex-1">{children}</main>
+                <main className="flex-1">
+                  <SearchNavigationProvider>{children}</SearchNavigationProvider>
+                </main>
                 <SiteFooter lang={lang} />
               </div>
               <CookieConsent lang={lang} />
