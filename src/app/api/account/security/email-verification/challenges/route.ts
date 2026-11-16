@@ -1,4 +1,4 @@
-import { accountRoute } from '@/server/account-route';
+import { accountRoute, localAccountsEnabled } from '@/server/account-route';
 import {NextResponse} from 'next/server';
 import {getAuthenticatedAccount} from '@/server/customerAccountAuth';
 import {CustomerAccountStore} from '@/server/customerAccountStore';
@@ -29,7 +29,7 @@ async function handlePOST() {
       success: true,
       challenge_id: result.challenge.challenge_id,
       masked_email: maskEmail(account.primary_email),
-      ...(process.env.NODE_ENV !== 'production' ? {dev_code: result.rawCode} : {}),
+      ...(localAccountsEnabled() ? {dev_code: result.rawCode} : {}),
     });
   } catch (error) {
     console.error('Create email verification challenge error:', error);

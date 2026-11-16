@@ -8,6 +8,7 @@ const ts = require('typescript');
 // Exercise the actual handlers and adapters in an isolated process. Cookies
 // stand in for Next's request context; no browser, network, or live data is used.
 process.env.NODE_ENV = 'test';
+delete process.env.TRUSTGO_DEMO_MODE;
 const root = path.resolve(__dirname, '..');
 const resolve = Module._resolveFilename;
 const load = Module._load;
@@ -405,6 +406,77 @@ async function test(name, callback) {
       assert.equal(store.findByEmail(email), undefined);
       assert.throws(() => notifications.enqueueCustomerAccountNotification({ account: { primary_email: email }, notification_type: 'account_created', locale: 'en', idempotency_key: 'production-check' }));
     } finally { process.env.NODE_ENV = 'test'; }
+  });
+  await test('Vercel demo production build supports account, rental and recovery handlers', async () => {
+    process.env.NODE_ENV = 'production';
+    process.env.TRUSTGO_DEMO_MODE = JSON.parse(fs.readFileSync(path.join(root, 'vercel.json'), 'utf8')).env.TRUSTGO_DEMO_MODE;
+    const previousRentalMode = process.env.TRUSTGO_RENTAL_MODE;
+    delete process.env.TRUSTGO_RENTAL_MODE;
+    const rentalCall = async (action, body) => {
+      const response = await rentalRoutes[body ? 'POST' : 'GET'](new Request(`https://demo.invalid/api/rental/${action}`, {
+        method: body ? 'POST' : 'GET', headers: { origin: 'https://demo.invalid', 'content-type': 'application/json' },
+        ...(body ? { body: JSON.stringify(body) } : {}),
+      }), { params: Promise.resolve({ action: action.split('/') }) });
+      for (const cookie of response.cookies.getAll()) cookieJar.set(cookie.name, cookie.value);
+      assert.equal(response.status, 200);
+      assert.equal(response.headers.get('Cache-Control'), 'private, no-store');
+      return response.json();
+    };
+    try {
+      assert.equal((await call('sign-in', 'POST', { email })).body.code, 'ACCOUNT_NOT_FOUND');
+      const registered = await call('registrations', 'POST', registration());
+      assert.equal(registered.status, 200);
+      assert.ok(registered.cookies.find(c => c.name === rules.SESSION_COOKIE_NAME).secure);
+      assert.equal((await call('session', 'GET')).body.authenticated, true);
+      // Reload the store as another route bundle in this server process would.
+      const storePath = require.resolve('../src/server/customerAccountStore.ts');
+      delete require.cache[storePath];
+      const reloaded = require(storePath).CustomerAccountStore;
+      assert.equal(reloaded.findByEmail(email).primary_email, registered.body.account.primary_email);
+      assert.ok(reloaded.getSession(cookieJar.get(rules.SESSION_COOKIE_NAME)));
+      const notificationPath = require.resolve('../src/server/customerAccountNotifications.ts');
+      delete require.cache[notificationPath];
+      assert.equal(require(notificationPath).listCustomerAccountNotificationEvents().length, 1);
+      assert.equal((await call('sign-out')).body.success, true);
+      assert.equal((await call('sign-in', 'POST', { email })).body.code, 'PASSWORD_REQUIRED');
+      assert.equal((await call('sign-in', 'POST', { email, password })).body.success, true);
+      assert.deepEqual(await rentalCall('bookings'), { status: 'active', orders: [] });
+      const actor = { sessionId: cookieJar.get('tg_rental_access'), accountId: reloaded.findByEmail(email).account_id };
+      const { booking } = bookingFixture(undefined, actor);
+      assert.equal((await rentalCall('guest-lookup', { confirmationCode: booking.confirmationCode, lastName: driver.lastName })).confirmationCode, booking.confirmationCode);
+      assert.equal((await rentalCall(`bookings/${booking.confirmationCode}`)).status, 'PENDING_PAYMENT');
+      assert.equal((await rentalCall(`bookings/${booking.confirmationCode}/payment`, { idempotencyKey: crypto.randomUUID() })).status, 'CONFIRMED');
+      const estimate = await rentalCall(`bookings/${booking.confirmationCode}/cancellation-estimate`, {});
+      assert.equal((await rentalCall(`bookings/${booking.confirmationCode}/cancel`, {
+        reason: 'bm_reason_plans', version: estimate.version, idempotencyKey: crypto.randomUUID(),
+      })).status, 'CANCELLED');
+      const challenge = await call('password/challenges', 'POST', { email, purpose: 'forgot_password', locale: 'zh' });
+      assert.match(challenge.body.dev_code, /^\d{6}$/);
+      assert.equal((await call('password/set', 'POST', resetPayload({ challenge: { challenge_id: challenge.body.challenge_id }, rawCode: challenge.body.dev_code }))).body.success, true);
+      assert.equal((await call('session', 'GET')).body.authenticated, true);
+    } finally {
+      process.env.NODE_ENV = 'test';
+      delete process.env.TRUSTGO_DEMO_MODE;
+      if (previousRentalMode === undefined) delete process.env.TRUSTGO_RENTAL_MODE;
+      else process.env.TRUSTGO_RENTAL_MODE = previousRentalMode;
+    }
+  });
+  await test('false or misspelled demo flags do not enable production accounts or rentals', async () => {
+    process.env.NODE_ENV = 'production';
+    const previousRentalMode = process.env.TRUSTGO_RENTAL_MODE;
+    delete process.env.TRUSTGO_RENTAL_MODE;
+    try {
+      for (const flag of ['false', 'TRUE', '1', '']) {
+        process.env.TRUSTGO_DEMO_MODE = flag;
+        assert.equal((await call('sign-in', 'POST', { email })).status, 503);
+        assert.throws(() => rental.listBookings({ sessionId: 'closed' }), error => error.code === 'service_unavailable');
+      }
+    } finally {
+      process.env.NODE_ENV = 'test';
+      delete process.env.TRUSTGO_DEMO_MODE;
+      if (previousRentalMode === undefined) delete process.env.TRUSTGO_RENTAL_MODE;
+      else process.env.TRUSTGO_RENTAL_MODE = previousRentalMode;
+    }
   });
   console.log(`\n${passed} customer-account regression checks passed.`);
 })().catch(error => { console.error(error); process.exitCode = 1; });

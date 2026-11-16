@@ -41,13 +41,10 @@ declare global {
   var __tgGlobalAccountNotificationState: NotificationState | undefined;
 }
 
-const state: NotificationState = globalThis.__tgGlobalAccountNotificationState ?? {
+const state: NotificationState = globalThis.__tgGlobalAccountNotificationState ??= {
   events: new Map(),
 };
 
-if (process.env.NODE_ENV !== 'production') {
-  globalThis.__tgGlobalAccountNotificationState = state;
-}
 
 /**
  * Notification boundary for the account service.

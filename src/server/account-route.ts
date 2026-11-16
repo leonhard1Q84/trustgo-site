@@ -1,10 +1,11 @@
 import { createHash } from 'node:crypto';
 import { NextResponse } from 'next/server';
+import { localAdaptersEnabled } from './demo-mode';
 
-// This repository's account adapter is for local verification. A production
-// account service and delivery provider must replace it before enabling it.
+// Internal verification includes explicitly opted-in demo deployments. Real
+// customer traffic still requires an account service and delivery provider.
 export function localAccountsEnabled() {
-  return process.env.NODE_ENV !== 'production';
+  return localAdaptersEnabled();
 }
 
 type Bucket = { count: number; expires: number };

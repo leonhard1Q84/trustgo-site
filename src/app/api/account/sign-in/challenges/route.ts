@@ -1,4 +1,4 @@
-import { accountRoute } from '@/server/account-route';
+import { accountRoute, localAccountsEnabled } from '@/server/account-route';
 import {NextResponse} from 'next/server';
 import {CustomerAccountStore} from '@/server/customerAccountStore';
 import {maskEmail, validateEmail} from '@/modules/customer-account/domain/account.rules';
@@ -65,8 +65,8 @@ async function handlePOST(request: Request) {
       success: true,
       challenge_id: result.challenge.challenge_id,
       masked_email: masked,
-      // For developer / testing convenience, expose dev_code in non-production
-      ...(process.env.NODE_ENV !== 'production' && canDeliver ? {dev_code: result.rawCode} : {}),
+      // Internal acceptance receives an on-screen code without requiring email delivery.
+      ...(localAccountsEnabled() && canDeliver ? {dev_code: result.rawCode} : {}),
       message: 'Verification code sent.',
     });
   } catch (error) {

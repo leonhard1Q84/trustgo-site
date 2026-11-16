@@ -377,6 +377,28 @@ const oldEnvironment = { NODE_ENV: process.env.NODE_ENV, TRUSTGO_RENTAL_MODE: pr
     assert.ok(render({ ...overdue, status: 'CANCELLED', closureReason: 'payment_timeout' }).includes(getTranslation('ck_hold_expired_title', 'en')));
     assert.ok(render(overdue, 'service_unavailable').includes(getTranslation('rental_service_unavailable', 'en')));
   });
+  await test('explicit demo mode renders rate and driver pages in a production build for every language', async () => {
+    const previous = { NODE_ENV: process.env.NODE_ENV, TRUSTGO_DEMO_MODE: process.env.TRUSTGO_DEMO_MODE,
+      TRUSTGO_RENTAL_MODE: process.env.TRUSTGO_RENTAL_MODE };
+    process.env.NODE_ENV = 'production';
+    process.env.TRUSTGO_DEMO_MODE = 'true';
+    delete process.env.TRUSTGO_RENTAL_MODE;
+    try {
+      for (const lang of ['en', 'zh', 'ja', 'es', 'ko']) {
+        const rateTree = await ratePage({ params: Promise.resolve({ lang, id: 'toyota-rav4-suv' }),
+          searchParams: Promise.resolve({ ...Object.fromEntries(new URLSearchParams(search.buildSearchQuery(form()))), offer: 'toyota-rav4-suv@US-LAX-01' }) });
+        const rate = findProps(rateTree, value => Boolean(value.trip?.rateDetailsId));
+        assert.ok(rate?.trip?.rateDetailsId);
+        const driverTree = await driverPage({ params: Promise.resolve({ lang }),
+          searchParams: Promise.resolve({ rateDetailsId: rate.trip.rateDetailsId }) });
+        assert.ok(findProps(driverTree, value => value.trip?.rateDetailsId === rate.trip.rateDetailsId));
+      }
+    } finally {
+      for (const [key, value] of Object.entries(previous)) {
+        if (value === undefined) delete process.env[key]; else process.env[key] = value;
+      }
+    }
+  });
   console.log(`\n${passed} booking recovery regressions passed.`);
 })().catch(error => { console.error(error); process.exitCode = 1; }).finally(() => {
   Date.now = realNow; global.fetch = realFetch;

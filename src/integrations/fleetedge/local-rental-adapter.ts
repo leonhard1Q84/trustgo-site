@@ -17,6 +17,7 @@ import {checkoutAccountConsent} from '@/modules/customer-account/domain/checkout
 import { readLocalPaymentScenario } from '@/modules/checkout/domain/local-payment-scenario';
 import { confirmLocalPayment, localPaymentResult } from './local-payment';
 import { throwLocalBookingFault } from './local-booking-faults';
+import { localAdaptersEnabled } from '@/server/demo-mode';
 
 export interface RentalAccess { sessionId: string; accountId?: string }
 export interface CreateReservationInput {
@@ -42,7 +43,7 @@ const HOLD_TTL = 15 * 60_000;
 const RETENTION = 7 * 86_400_000;
 
 export function assertLocalRentalEnabled() {
-  if (process.env.NODE_ENV === 'production' && process.env.TRUSTGO_RENTAL_MODE !== 'local') {
+  if (!localAdaptersEnabled() && process.env.TRUSTGO_RENTAL_MODE !== 'local') {
     throw new RentalError('service_unavailable', 503);
   }
 }

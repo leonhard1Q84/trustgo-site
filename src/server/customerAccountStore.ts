@@ -56,7 +56,7 @@ declare global {
   var __tgGlobalAccountState: GlobalAccountState | undefined;
 }
 
-const state: GlobalAccountState = globalThis.__tgGlobalAccountState ?? {
+const state: GlobalAccountState = globalThis.__tgGlobalAccountState ??= {
   accounts: new Map(),
   emailIndex: new Map(),
   sessions: new Map(),
@@ -66,9 +66,7 @@ const state: GlobalAccountState = globalThis.__tgGlobalAccountState ?? {
   registrationAccountRequests: new Map(),
 };
 
-if (process.env.NODE_ENV !== 'production') {
-  globalThis.__tgGlobalAccountState = state;
-}
+// Route bundles in the same server process share state; this is not durable storage.
 
 export function hashPassword(password: string, salt: string): string {
   return crypto.scryptSync(password, salt, 64).toString('hex');

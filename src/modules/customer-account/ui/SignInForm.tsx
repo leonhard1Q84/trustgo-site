@@ -343,7 +343,7 @@ export const SignInForm: React.FC<SignInFormProps> = ({lang}) => {
             </p>
             {devCode && (
               <p className="text-xs font-mono font-semibold text-emerald-700 mt-1">
-                [Testing Code]: {devCode}
+                {t('account.verification.code')}: {devCode}
               </p>
             )}
           </div>

@@ -699,7 +699,7 @@ export const AuthUnifiedCard: React.FC<AuthUnifiedCardProps> = ({
 
           {devCode && (
             <div className="mb-4 rounded-control border border-amber-300 bg-amber-50 p-2.5 text-xs text-amber-900 font-mono">
-              [Dev Simulation Code]: {devCode}
+              {t('account.verification.code')}: {devCode}
             </div>
           )}
 

@@ -121,7 +121,7 @@ export function AccountEmailVerificationDialog({
             )}
             {devCode && (
               <p className="mt-1 font-mono font-semibold text-success">
-                {t('account.verification.dev_code')} {devCode}
+                {t('account.verification.code')}: {devCode}
               </p>
             )}
           </div>
