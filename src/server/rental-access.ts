@@ -4,12 +4,15 @@ import type { NextResponse } from 'next/server';
 import { getAuthenticatedAccount } from './customerAccountAuth';
 import { RentalError } from '@/modules/reservation/domain/validation';
 import type { RentalAccess } from '@/integrations/fleetedge/local-rental-adapter';
+import { demoState } from './demo-state';
 
 const COOKIE = 'tg_rental_access';
 const TTL = 24 * 60 * 60_000;
 interface AccessState { sessions: Map<string, number>; limits: Map<string, { count: number; expires: number }> }
 const globals = globalThis as typeof globalThis & { __trustgoRentalAccess?: AccessState };
-const state = globals.__trustgoRentalAccess ??= { sessions: new Map(), limits: new Map() };
+const state = demoState('rental-access', globals.__trustgoRentalAccess ??= {
+  sessions: new Map(), limits: new Map(),
+}, (): AccessState => ({ sessions: new Map(), limits: new Map() }));
 
 export async function rentalAccess(create = false): Promise<RentalAccess | null> {
   const now = Date.now();

@@ -9,10 +9,11 @@ import { BookingProgressStepper } from '@/modules/reservation/public-api';
 import { buildRateReturnHref } from '@/modules/reservation/application/rate-return';
 import { safeRateRecoveryPath } from '@/modules/reservation/application/route-recovery';
 import { DriverBookingView } from './DriverBookingView';
+import { withDemoState } from '@/server/demo-state';
 
 export const dynamic = 'force-dynamic';
 
-export default async function DriverDetailsPage({
+async function DriverDetailsPage({
   params,
   searchParams,
 }: {
@@ -72,4 +73,8 @@ export default async function DriverDetailsPage({
       </div>
     </div>
   );
+}
+
+export default function Page(props: Parameters<typeof DriverDetailsPage>[0]) {
+  return withDemoState(() => DriverDetailsPage(props));
 }

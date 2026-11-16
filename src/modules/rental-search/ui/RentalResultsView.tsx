@@ -54,10 +54,13 @@ interface RentalResultsViewProps {
   searchParams: Record<string, string | string[] | undefined>;
   docNotice?: { isWarning: boolean; text: string } | null;
   onEditSearch?: () => void;
+  resultsCheckedAt?: string;
+  resultsExpiresAt?: string;
 }
 
 export function RentalResultsView({
   vehicles, offers, lang, pickupLocation, licenseCountry, rentalDays, searchParams, docNotice,
+  resultsCheckedAt, resultsExpiresAt,
 }: RentalResultsViewProps) {
   const t = (k: string) => getTranslation(k, lang);
   const [category, setCategory] = useState<CategoryFilter>('all');
@@ -68,9 +71,11 @@ export function RentalResultsView({
   const { refresh } = useSearchNavigation();
 
   const { searchExpiryDialog, isSearchRefreshing } = useSearchExpiry({
-    isActive: true,
+    isActive: offers.length > 0,
     resetKey: `${pickupLocation}-${licenseCountry}-${rentalDays}`,
     onRefresh: refresh,
+    checkedAt: resultsCheckedAt,
+    expiresAt: resultsExpiresAt,
     lang,
   });
 

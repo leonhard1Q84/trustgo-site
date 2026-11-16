@@ -2,6 +2,7 @@ import { redirect, notFound } from 'next/navigation';
 import { isRouteLanguage } from '@/i18n/locales';
 import { rentalAccess } from '@/server/rental-access';
 import { listBookings } from '@/integrations/fleetedge/local-rental-adapter';
+import { withDemoState } from '@/server/demo-state';
 import {
   bookingLookupModalPath,
   verifiedBookingReturnPath,
@@ -9,7 +10,7 @@ import {
 
 export const dynamic = 'force-dynamic';
 
-export default async function ManageBookingPage({
+async function ManageBookingPage({
   params,
   searchParams,
 }: {
@@ -29,4 +30,8 @@ export default async function ManageBookingPage({
     redirect(bookingLookupModalPath(lang, returnTo));
   }
   redirect(access?.accountId || orders.length ? `/${lang}/manage-booking/orders` : bookingLookupModalPath(lang));
+}
+
+export default function Page(props: Parameters<typeof ManageBookingPage>[0]) {
+  return withDemoState(() => ManageBookingPage(props));
 }

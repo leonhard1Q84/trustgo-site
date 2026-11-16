@@ -132,7 +132,9 @@ const oldEnvironment = { NODE_ENV: process.env.NODE_ENV, TRUSTGO_RENTAL_MODE: pr
     const rate = details(), base = Date.now;
     try {
       Date.now = () => Date.parse(rate.trip.rateExpiresAt);
-      assert.deepEqual(rental.getRateDetailsForDisplay(rate.trip.rateDetailsId), rate);
+      assert.deepEqual(rental.getRateDetailsForDisplay(rate.trip.rateDetailsId), {
+        ...rate, trip: { ...rate.trip, rateCheckedAt: rate.trip.rateExpiresAt },
+      });
       rejectsCode(() => rental.getRateDetails(rate.trip.rateDetailsId), 'rate_expired');
       rejectsCode(() => rental.createReservation(input(rate), actor), 'rate_expired');
       Date.now = () => Date.parse(rate.trip.rateExpiresAt) + 86_400_000;

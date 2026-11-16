@@ -17,7 +17,8 @@ import {checkoutAccountConsent} from '@/modules/customer-account/domain/checkout
 import { readLocalPaymentScenario } from '@/modules/checkout/domain/local-payment-scenario';
 import { confirmLocalPayment, localPaymentResult } from './local-payment';
 import { throwLocalBookingFault } from './local-booking-faults';
-import { localAdaptersEnabled } from '@/server/demo-mode';
+import { localAdaptersEnabled, localQuoteLifetimeMs } from '@/server/demo-mode';
+import { demoState } from '@/server/demo-state';
 
 export interface RentalAccess { sessionId: string; accountId?: string }
 export interface CreateReservationInput {
@@ -37,8 +38,9 @@ interface RentalState {
   operations: Map<string, { fingerprint: string; bookingId: string; expires: number; errorCode?: string; errorStatus?: number }>;
 }
 const globalState = globalThis as typeof globalThis & { __trustgoRentalState?: RentalState };
-const state = globalState.__trustgoRentalState ??= { rates: new Map(), bookings: new Map(), operations: new Map() };
-const RATE_TTL = 3 * 60_000;
+const state = demoState('rental', globalState.__trustgoRentalState ??= {
+  rates: new Map(), bookings: new Map(), operations: new Map(),
+}, (): RentalState => ({ rates: new Map(), bookings: new Map(), operations: new Map() }));
 const HOLD_TTL = 15 * 60_000;
 const RETENTION = 7 * 86_400_000;
 
@@ -68,7 +70,8 @@ export function createRateDetails(form: SearchFormState, offerId: string, lang: 
   if (Date.parse(pickup) <= Date.now() || Date.parse(dropoff) <= Date.parse(pickup)) {
     throw new RentalError('invalid_search', 400);
   }
-  const expires = Date.now() + RATE_TTL;
+  const checkedAt = Date.now();
+  const expires = checkedAt + localQuoteLifetimeMs();
   const rateDetailsId = randomUUID();
   const trip: RentalTripDetails = {
     pickupLocation: offer.storeNames[routeToLanguage(lang)], returnLocation: offer.storeNames[routeToLanguage(lang)],
@@ -77,6 +80,7 @@ export function createRateDetails(form: SearchFormState, offerId: string, lang: 
     driverAge: form.driverAge, licenseCountry: form.licenseCountry,
     pickupStoreCode: offer.storeCode, returnStoreCode: offer.storeCode,
     timeZone: offer.timeZone, offerId, rateDetailsId, rateExpiresAt: new Date(expires).toISOString(),
+    rateCheckedAt: new Date(checkedAt).toISOString(),
   };
   const details = { vehicle: applyOfferToVehicle(base, offer, routeToLanguage(lang)), trip, search: form };
   state.rates.set(rateDetailsId, { details: structuredClone(details), expires });
@@ -98,6 +102,7 @@ export function getRateDetailsForDisplay(id: string, lang?: RouteLanguage): Rate
   const rate = state.rates.get(id);
   if (!rate) throw new RentalError('rate_expired', 410);
   const details = structuredClone(rate.details);
+  details.trip.rateCheckedAt = new Date(Date.now()).toISOString();
   const offer = lang && getStoreOffer(details.trip.offerId);
   if (offer && lang) {
     const name = offer.storeNames[routeToLanguage(lang)];

@@ -140,13 +140,16 @@ npm run check:build  # 构建后检查最终 HTML 的文档结构、语言与本
 npm run test:site-navigation # 换语言保留行程、离开确认及预订联系邮箱回归
 npm run test:customer-account # 账户、验证码、会话及结算建账业务回归（隔离进程，无网络）
 npm run test:rental-business  # 租车预订、支付、取消与访问权限回归
+npm run test:demo-deployment # 跨独立进程的报价、建单、支付、账号与并发回归
 ```
 
 开发服务使用 `.next-dev/`，生产构建使用 `.next/`。重复运行启动命令不会另起第二个服务；4000 被其他项目或生产服务占用时会明确报错并保留该进程。后台预览不会被其他终端的 `Ctrl+C` 停止，需使用 `npm run preview:stop`。日志位于 `.local-preview/server-4000.log`。
 
 若日志明确显示组件清单或缓存异常，可运行 `npm run preview:restart -- --clean-cache`；它只备份开发缓存后重启，不清理源码、环境变量或生产构建。源码报错和字体下载失败仍需按日志处理。Agent 不应绕过入口直接启动 `next dev`。进程生命周期回归可运行 `python3 scripts/test-preview.py`；页面点击验收仍交由人完成。
 
-账户当前使用进程内适配器，重启或切换 Vercel 实例会清空账户、会话、订单和验证码；验证码通过接口响应辅助验收，通知事件标记为 `preview_only`，不代表真实邮件投递。演示部署需设置 `TRUSTGO_DEMO_MODE=true`（仓库的 `vercel.json` 已提供该配置），否则生产构建会返回 `503 SERVICE_UNAVAILABLE`，避免把内存注册或未投递邮件误当成真实账户服务。真实账户服务上线前仍须补齐共享持久化、事务、限流、邮件投递和 FE 适配，并提供相同业务接口。
+演示部署需设置 `TRUSTGO_DEMO_MODE=true`（`vercel.json` 已配置），并连接私有 Vercel Blob 存储，由平台注入 `BLOB_READ_WRITE_TOKEN`。报价、订单、访问授权、账户及验证码使用服务端共享快照，跨函数与重新部署保持一致；写入使用 ETag 条件更新处理并发，存储故障返回服务错误，不回退为空内存。Production 与 Preview 使用不同快照；验收个人记录最长保留七天，下一次访问时清理。演示报价有效期为 30 分钟，按服务端时钟计算，刷新不延长原报价。
+
+本地未配置存储时仍使用进程内适配器，重启会清空数据。验证码通过接口响应辅助验收，通知事件标记为 `preview_only`，不代表真实邮件投递。该共享存储仅用于演示 / 验收；正式接单前须移除演示配置，接入正式 FE、账户、支付及邮件服务，并完成生产数据治理与事务能力。
 
 页面点击验收仍交由人完成；交付验证要求见 [`AGENTS.md`](AGENTS.md) 的“交付验证”一节。
 

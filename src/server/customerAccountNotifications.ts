@@ -3,6 +3,7 @@ import type { RouteLanguage } from '@/i18n/locales';
 import type { CustomerAccount } from '@/modules/customer-account/domain/account.types';
 import { maskEmail } from '@/modules/customer-account/domain/account.rules';
 import {localAccountsEnabled} from './account-route';
+import { demoState } from './demo-state';
 
 export type AccountNotificationType =
   | 'account_created'
@@ -41,9 +42,9 @@ declare global {
   var __tgGlobalAccountNotificationState: NotificationState | undefined;
 }
 
-const state: NotificationState = globalThis.__tgGlobalAccountNotificationState ??= {
+const state = demoState('notifications', globalThis.__tgGlobalAccountNotificationState ??= {
   events: new Map(),
-};
+}, (): NotificationState => ({ events: new Map() }));
 
 
 /**

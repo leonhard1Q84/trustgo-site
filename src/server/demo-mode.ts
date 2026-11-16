@@ -7,3 +7,8 @@ export function demoDeploymentEnabled() {
 export function localAdaptersEnabled() {
   return process.env.NODE_ENV !== 'production' || demoDeploymentEnabled();
 }
+
+/** FE supplies its own expiry; the internal acceptance quote leaves time to fill the form. */
+export function localQuoteLifetimeMs() {
+  return (demoDeploymentEnabled() ? 30 : 3) * 60_000;
+}

@@ -10,6 +10,7 @@ import type { Metadata } from 'next';
 import { getAvailableStoreOffers } from '@/modules/rental-search/domain/availability';
 import { RentalError } from '@/modules/reservation/domain/validation';
 import type { StoreOffer } from '@/modules/rental-search/domain/store-offers';
+import { localQuoteLifetimeMs } from '@/server/demo-mode';
 
 // Rolling availability must use the request clock, never a build-time snapshot.
 export const dynamic = 'force-dynamic';
@@ -87,6 +88,8 @@ export default async function RentPage({
       rentalDays={rentalDays}
       searchParams={resolvedSearchParams}
       docNotice={docNotice}
+      resultsCheckedAt={new Date().toISOString()}
+      resultsExpiresAt={new Date(new Date().getTime() + localQuoteLifetimeMs()).toISOString()}
     />
   );
 }

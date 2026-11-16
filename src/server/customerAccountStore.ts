@@ -1,4 +1,5 @@
 import crypto from 'node:crypto';
+import { demoState } from './demo-state';
 import type {
   AccountAuthSession,
   AccountCreationConsent,
@@ -56,7 +57,7 @@ declare global {
   var __tgGlobalAccountState: GlobalAccountState | undefined;
 }
 
-const state: GlobalAccountState = globalThis.__tgGlobalAccountState ??= {
+const emptyState = (): GlobalAccountState => ({
   accounts: new Map(),
   emailIndex: new Map(),
   sessions: new Map(),
@@ -64,9 +65,10 @@ const state: GlobalAccountState = globalThis.__tgGlobalAccountState ??= {
   lastChallengeSentAt: new Map(),
   checkoutAccountRequests: new Map(),
   registrationAccountRequests: new Map(),
-};
+});
+const state = demoState('accounts', globalThis.__tgGlobalAccountState ??= emptyState(), emptyState);
 
-// Route bundles in the same server process share state; this is not durable storage.
+// Demo request scopes use the private shared snapshot; local tests use process state.
 
 export function hashPassword(password: string, salt: string): string {
   return crypto.scryptSync(password, salt, 64).toString('hex');

@@ -140,6 +140,7 @@ export function DriverBookingView({
     isActive: true,
     resetKey: trip.rateDetailsId,
     expiresAt: trip.rateExpiresAt,
+    checkedAt: trip.rateCheckedAt,
     onRefresh: returnToRateDetails,
     lang,
     variant: 'rate',

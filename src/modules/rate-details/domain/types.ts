@@ -69,6 +69,8 @@ export interface RentalTripDetails {
   offerId?: string;
   rateDetailsId?: string;
   rateExpiresAt?: string;
+  /** Service clock at the last quote read; device clock must not invalidate a quote. */
+  rateCheckedAt?: string;
 }
 
 export interface CancellationStep {

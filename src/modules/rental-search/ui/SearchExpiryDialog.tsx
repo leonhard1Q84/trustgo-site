@@ -5,8 +5,9 @@ import Link from 'next/link';
 import { AlertCircle, Loader2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/shared/ui/dialog';
 import { VehicleCardSkeleton } from './SearchSkeleton';
+import { expiryLifetime } from '../domain/expiry-clock';
 
-export const SEARCH_RESULT_EXPIRY_MS = 3 * 60 * 1000; // 3 minutes
+export { SEARCH_RESULT_EXPIRY_MS } from '../domain/expiry-clock';
 
 export function SearchLoadingProgressBar({ label }: { label?: string }) {
   const [progress, setProgress] = useState(18);
@@ -247,6 +248,7 @@ export function useSearchExpiry({
   isActive,
   resetKey,
   expiresAt,
+  checkedAt,
   onRefresh,
   lang = 'zh',
   variant = 'search',
@@ -255,6 +257,7 @@ export function useSearchExpiry({
   isActive: boolean;
   resetKey: unknown;
   expiresAt?: string;
+  checkedAt?: string;
   onRefresh: () => void | Promise<void>;
   lang?: string;
   variant?: 'search' | 'rate';
@@ -273,10 +276,23 @@ export function useSearchExpiry({
     setIsExpired(false);
     if (!isActive) return;
 
-    const remaining = expiresAt ? Date.parse(expiresAt) - Date.now() : SEARCH_RESULT_EXPIRY_MS;
-    const timer = window.setTimeout(() => setIsExpired(true), Number.isFinite(remaining) ? Math.max(0, remaining) : 0);
-    return () => window.clearTimeout(timer);
-  }, [isActive, resetKey, expiresAt]);
+    const deadline = performance.now() + expiryLifetime(expiresAt, checkedAt);
+    let timer: number;
+    const check = () => {
+      window.clearTimeout(timer);
+      const remaining = deadline - performance.now();
+      if (remaining <= 0) setIsExpired(true);
+      else timer = window.setTimeout(check, Math.ceil(remaining));
+    };
+    check();
+    window.addEventListener('focus', check);
+    document.addEventListener('visibilitychange', check);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener('focus', check);
+      document.removeEventListener('visibilitychange', check);
+    };
+  }, [isActive, resetKey, expiresAt, checkedAt]);
 
   const triggerExpiry = useCallback(() => {
     setIsExpired(true);

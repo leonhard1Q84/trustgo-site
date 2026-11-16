@@ -81,6 +81,7 @@ export function RateDetailsView({
     isActive: true,
     resetKey: trip.rateDetailsId,
     expiresAt: trip.rateExpiresAt,
+    checkedAt: trip.rateCheckedAt,
     onRefresh: handleRefreshRate,
     lang,
     variant: 'rate',
