@@ -57,7 +57,8 @@ export async function withDemoState<T>(operation: () => Promise<T>): Promise<T> 
       try {
         await put(PATH, updated, {
           access: 'private', addRandomSuffix: false, contentType: 'application/octet-stream',
-          ...(response ? { ifMatch: response.blob.etag } : { allowOverwrite: false }),
+          // Blob's Brotli/gzip download adds W/; writes compare the stored object's ETag.
+          ...(response ? { ifMatch: response.blob.etag.replace(/^W\//, '') } : { allowOverwrite: false }),
         });
       } catch (error) {
         // First-write races also retry from the winner's snapshot.

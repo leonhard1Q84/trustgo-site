@@ -19,7 +19,7 @@ const fileState = () => {
   try { return fs.readFileSync(process.env.TG_TEST_STATE); }
   catch (error) { if (error.code === 'ENOENT') return null; throw error; }
 };
-const etag = bytes => crypto.createHash('sha256').update(bytes).digest('hex');
+const etag = bytes => `"${crypto.createHash('sha256').update(bytes).digest('hex')}"`;
 Module._load = function (name, parent, ...rest) {
   if (name === 'next/headers') return { cookies: async () => ({ get: key => cookieJar.has(key) ? { value: cookieJar.get(key) } : undefined }) };
   if (name === '@vercel/blob') return {
@@ -28,7 +28,8 @@ Module._load = function (name, parent, ...rest) {
       assert.equal(options.access, 'private'); assert.equal(options.useCache, false);
       if (input.storageFailure) throw new Error('storage unavailable');
       const bytes = fileState();
-      return bytes ? { statusCode: 200, stream: new Response(bytes).body, blob: { etag: etag(bytes) } } : null;
+      // Real Blob downloads use a weak ETag when compression transforms the response.
+      return bytes ? { statusCode: 200, stream: new Response(bytes).body, blob: { etag: `W/${etag(bytes)}` } } : null;
     },
     async put(_pathname, bytes, options) {
       assert.equal(options.access, 'private'); assert.equal(options.addRandomSuffix, false);
