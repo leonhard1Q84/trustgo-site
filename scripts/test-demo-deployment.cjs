@@ -178,6 +178,13 @@ if (process.argv.includes('--child')) {
         const result = await call({ action: 'reservations', cookies, body: reservation, readFailures: 2, writeConflicts: 2 });
         assert.equal(result.status, 200); assert.equal(result.data.confirmationCode, booking.confirmationCode);
       });
+      await test('expired checkout derives its timeout state without attempting a page write', async () => {
+        const before = fileStateForParent();
+        const result = await call({ action: 'checkout', code: booking.confirmationCode, cookies,
+          advance: 16 * 60_000, noWrites: true });
+        assert.equal(result.status, 'CANCELLED'); assert.equal(result.closureReason, 'payment_timeout');
+        assert.deepEqual(fileStateForParent(), before);
+      });
       await test('a lost successful write response replays from fresh state without duplicating a reservation', async () => {
         const guest = (await call({ action: 'bookings' })).cookies;
         const body = { ...reservation, idempotencyKey: crypto.randomUUID() };
