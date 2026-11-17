@@ -70,12 +70,12 @@ export default async function HomePage({ params }: { params: Promise<{ lang: str
       <section className="relative w-full lg:h-160">
         <div className="relative h-72 sm:h-96 lg:absolute lg:inset-0 lg:h-auto">
           <Image
-            src="https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?auto=format&fit=crop&w=2000&q=80"
+            src="/images/home/coastal-road.webp"
             alt={dict.home.heroTitle}
             fill
             priority
             sizes="100vw"
-            className="object-cover"
+            className="object-cover object-right lg:object-center"
           />
           {/* Local scrim only behind the headline */}
           <div className="absolute inset-0 bg-gradient-to-t from-foreground/70 via-foreground/20 to-transparent lg:bg-gradient-to-l lg:from-foreground/60 lg:via-foreground/10" />
