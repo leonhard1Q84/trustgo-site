@@ -33,5 +33,5 @@ async function ManageBookingPage({
 }
 
 export default function Page(props: Parameters<typeof ManageBookingPage>[0]) {
-  return withDemoState(() => ManageBookingPage(props));
+  return withDemoState(() => ManageBookingPage(props), { readOnly: true });
 }

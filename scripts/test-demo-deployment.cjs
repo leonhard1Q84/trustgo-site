@@ -6,12 +6,13 @@ const os = require('node:os');
 const crypto = require('node:crypto');
 const Module = require('node:module');
 const ts = require('typescript');
+const blobSDK = require('@vercel/blob');
 const root = path.resolve(__dirname, '..');
 const resolve = Module._resolveFilename;
 const load = Module._load;
 let input = {};
 const cookieJar = new Map();
-class Conflict extends Error {}
+class Conflict extends blobSDK.BlobPreconditionFailedError {}
 Module._resolveFilename = function (name, parent, ...rest) {
   return resolve.call(this, name.startsWith('@/') ? path.join(root, 'src', name.slice(2)) : name, parent, ...rest);
 };
@@ -23,16 +24,24 @@ const etag = bytes => `"${crypto.createHash('sha256').update(bytes).digest('hex'
 Module._load = function (name, parent, ...rest) {
   if (name === 'next/headers') return { cookies: async () => ({ get: key => cookieJar.has(key) ? { value: cookieJar.get(key) } : undefined }) };
   if (name === '@vercel/blob') return {
+    ...blobSDK,
     BlobPreconditionFailedError: Conflict,
     async get(_pathname, options) {
       assert.equal(options.access, 'private'); assert.equal(options.useCache, false);
       if (input.storageFailure) throw new Error('storage unavailable');
+      if (input.readFailures > 0) { input.readFailures--; throw new blobSDK.BlobServiceNotAvailable(); }
       const bytes = fileState();
       // Real Blob downloads use a weak ETag when compression transforms the response.
       return bytes ? { statusCode: 200, stream: new Response(bytes).body, blob: { etag: `W/${etag(bytes)}` } } : null;
     },
     async put(_pathname, bytes, options) {
       assert.equal(options.access, 'private'); assert.equal(options.addRandomSuffix, false);
+      if (input.noWrites) throw new Error('Read polling attempted a snapshot write');
+      if (input.writeConflicts > 0) {
+        input.writeConflicts--;
+        throw new blobSDK.BlobError('The conditional request cannot succeed due to a conflicting operation against this resource.');
+      }
+      if (input.permanentWriteFailure) throw new blobSDK.BlobAccessError();
       const lock = `${process.env.TG_TEST_STATE}.lock`;
       try { fs.mkdirSync(lock); } catch { throw new Conflict(); }
       try {
@@ -42,6 +51,8 @@ Module._load = function (name, parent, ...rest) {
         fs.writeFileSync(temporary, bytes);
         fs.renameSync(temporary, process.env.TG_TEST_STATE);
       } finally { fs.rmdirSync(lock); }
+      // A successful write can lose its HTTP response; replay must preserve idempotency.
+      if (input.lostWriteResponse) { input.lostWriteResponse = false; throw new TypeError('fetch failed'); }
     },
   };
   // Render real server pages; only visual leaf components are stubbed.
@@ -53,8 +64,8 @@ Module._load = function (name, parent, ...rest) {
   }
   const result = load.call(this, name, parent, ...rest);
   if (name.endsWith('/demo-state') || (name === './demo-state' && parent?.filename.includes('/src/server/'))) {
-    return { ...result, withDemoState: async operation => {
-      try { return await result.withDemoState(operation); }
+    return { ...result, withDemoState: async (...args) => {
+      try { return await result.withDemoState(...args); }
       catch (error) { if (!error.code && !error.digest) console.error(error); throw error; }
     } };
   }
@@ -111,6 +122,7 @@ if (process.argv.includes('--child')) {
 } else {
   (async () => {
     const folder = fs.mkdtempSync(path.join(os.tmpdir(), 'trustgo-demo-test-'));
+    const fileStateForParent = () => fs.readFileSync(path.join(folder, 'state.bin'));
     const call = payload => new Promise((resolve, reject) => {
       const proc = require('node:child_process').spawn(process.execPath, [__filename, '--child'], {
         env: { ...process.env, TG_TEST_STATE: path.join(folder, 'state.bin') }, stdio: ['pipe', 'pipe', 'pipe'],
@@ -119,7 +131,7 @@ if (process.argv.includes('--child')) {
       proc.stdout.on('data', chunk => output += chunk); proc.stderr.on('data', chunk => errors += chunk);
       proc.on('error', reject); proc.on('close', code => {
         if (code) reject(new Error(errors));
-        else if (errors && !payload.storageFailure) reject(new Error(errors));
+        else if (errors && !payload.storageFailure && !payload.permanentWriteFailure) reject(new Error(errors));
         else resolve(JSON.parse(output));
       });
       proc.stdin.end(JSON.stringify(payload));
@@ -150,6 +162,34 @@ if (process.argv.includes('--child')) {
       await test('checkout SSR in a fresh process resolves both access cookie and order; other guests cannot read it', async () => {
         assert.equal((await call({ action: 'checkout', code: booking.confirmationCode, cookies })).confirmationCode, booking.confirmationCode);
         assert.equal((await call({ action: `bookings/${booking.confirmationCode}` })).status, 404);
+      });
+      await test('simultaneous checkout, account and navigation polling never writes the shared snapshot', async () => {
+        const before = fileStateForParent();
+        const actions = ['checkout', 'account/session', 'pending-checkouts', 'guest-bookings', 'bookings'];
+        const results = await Promise.all(Array.from({ length: 15 }, (_, i) => call({ action: actions[i % actions.length],
+          cookies, code: booking.confirmationCode, noWrites: true, advance: 70_000 })));
+        for (let i = 0; i < results.length; i++) {
+          if (actions[i % actions.length] === 'checkout') assert.equal(results[i].confirmationCode, booking.confirmationCode);
+          else assert.equal(results[i].status, 200);
+        }
+        assert.deepEqual(fileStateForParent(), before);
+      });
+      await test('transient origin reads and the actual overlapping-conditional-write error recover', async () => {
+        const result = await call({ action: 'reservations', cookies, body: reservation, readFailures: 2, writeConflicts: 2 });
+        assert.equal(result.status, 200); assert.equal(result.data.confirmationCode, booking.confirmationCode);
+      });
+      await test('a lost successful write response replays from fresh state without duplicating a reservation', async () => {
+        const guest = (await call({ action: 'bookings' })).cookies;
+        const body = { ...reservation, idempotencyKey: crypto.randomUUID() };
+        const result = await call({ action: 'reservations', cookies: guest, body, lostWriteResponse: true });
+        assert.equal(result.status, 200);
+        const retry = await call({ action: 'reservations', cookies: guest, body });
+        assert.equal(result.data.confirmationCode, retry.data.confirmationCode);
+        assert.equal((await call({ action: 'bookings', cookies: guest })).data.orders.length, 1);
+      });
+      await test('permanent storage write rejection fails closed instead of claiming the mutation succeeded', async () => {
+        const result = await call({ action: 'reservations', cookies, body: reservation, permanentWriteFailure: true });
+        assert.equal(result.status, 503); assert.equal(result.data.code, 'service_unavailable');
       });
       await test('failed payment state persists despite the error response, then concurrent successful retries charge once', async () => {
         const action = `bookings/${booking.confirmationCode}/payment`;

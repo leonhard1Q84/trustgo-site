@@ -1,9 +1,10 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { deserialize, serialize } from 'node:v8';
 import { setTimeout as backoff } from 'node:timers/promises';
-import { get, put, BlobPreconditionFailedError } from '@vercel/blob';
+import { get, put } from '@vercel/blob';
 import { demoDeploymentEnabled } from './demo-mode';
 import { pruneDemoSnapshot } from './demo-retention';
+import { demoStorageFailure, demoStorageRetryAfter } from './demo-storage-errors';
 
 type Namespaces = Record<string, object>;
 interface Snapshot { version: 1; namespaces: Namespaces }
@@ -29,49 +30,66 @@ export function demoState<T extends object>(key: string, fallback: T, empty: () 
   });
 }
 
-/** Private, origin reads and compare-and-swap writes; never fall back on storage errors. */
-export async function withDemoState<T>(operation: () => Promise<T>): Promise<T> {
+/** Read fresh state; only business changes participate in conditional writes. */
+export async function withDemoState<T>(operation: () => Promise<T>, options: { readOnly?: boolean } = {}): Promise<T> {
   if (context.getStore() || !demoDeploymentEnabled()) return operation();
   if (!process.env.BLOB_READ_WRITE_TOKEN && !process.env.BLOB_STORE_ID) {
     if (process.env.VERCEL) throw new Error('DEMO_STORAGE_UNAVAILABLE');
     return operation();
   }
-  for (let attempt = 0; attempt < 8; attempt++) {
-    const response = await get(PATH, { access: 'private', useCache: false });
-    if (response && response.statusCode !== 200) throw new Error('DEMO_STORAGE_INVALID');
-    const bytes = response ? Buffer.from(await new Response(response.stream).arrayBuffer()) : undefined;
-    if (bytes && bytes.length > MAX_BYTES) throw new Error('DEMO_STORAGE_LIMIT');
-    const snapshot: Snapshot = bytes ? deserialize(bytes) : { version: 1, namespaces: {} };
-    if (snapshot.version !== 1 || !snapshot.namespaces) throw new Error('DEMO_STORAGE_INVALID');
-    pruneDemoSnapshot(snapshot.namespaces);
-    let value: T | undefined;
-    let failure: unknown;
-    let failed = false;
-    await context.run(snapshot.namespaces, async () => {
-      try { value = await operation(); }
-      catch (error) { failed = true; failure = error; }
-    });
-    const updated = serialize(snapshot);
-    if (updated.length > MAX_BYTES) throw new Error('DEMO_STORAGE_LIMIT');
-    if (!bytes?.equals(updated)) {
-      try {
-        await put(PATH, updated, {
-          access: 'private', addRandomSuffix: false, contentType: 'application/octet-stream',
-          // Blob's Brotli/gzip download adds W/; writes compare the stored object's ETag.
-          ...(response ? { ifMatch: response.blob.etag.replace(/^W\//, '') } : { allowOverwrite: false }),
-        });
-      } catch (error) {
-        // First-write races also retry from the winner's snapshot.
-        if (error instanceof BlobPreconditionFailedError || (!response && attempt < 7)) {
-          await backoff(Math.min(250, 20 * 2 ** attempt) + Math.random() * 25);
-          continue;
+  const deadline = performance.now() + 12_000;
+  for (let attempt = 0; attempt < 12; attempt++) {
+    let phase: 'read' | 'operation' | 'write' = 'read';
+    try {
+      const signal = () => AbortSignal.timeout(Math.max(1, Math.min(4000, Math.ceil(deadline - performance.now()))));
+      const response = await get(PATH, { access: 'private', useCache: false, abortSignal: signal() });
+      if (response && response.statusCode !== 200) throw new Error('DEMO_STORAGE_INVALID');
+      const bytes = response ? Buffer.from(await new Response(response.stream).arrayBuffer()) : undefined;
+      if (bytes && bytes.length > MAX_BYTES) throw new Error('DEMO_STORAGE_LIMIT');
+      const snapshot: Snapshot = bytes ? deserialize(bytes) : { version: 1, namespaces: {} };
+      if (snapshot.version !== 1 || !snapshot.namespaces) throw new Error('DEMO_STORAGE_INVALID');
+      pruneDemoSnapshot(snapshot.namespaces);
+      // Cleanup alone must not make each page load compete for the same write lock.
+      // Records expire immediately; physical removal occurs on the next business mutation.
+      const baseline = serialize(snapshot);
+      let value: T | undefined;
+      let failure: unknown;
+      let failed = false;
+      phase = 'operation';
+      await context.run(snapshot.namespaces, async () => {
+        try { value = await operation(); }
+        catch (error) { failed = true; failure = error; }
+      });
+      if (!options.readOnly) {
+        const updated = serialize(snapshot);
+        if (updated.length > MAX_BYTES) throw new Error('DEMO_STORAGE_LIMIT');
+        if (!baseline.equals(updated)) {
+          phase = 'write';
+          await put(PATH, updated, {
+            access: 'private', addRandomSuffix: false, contentType: 'application/octet-stream',
+            abortSignal: signal(),
+            // Compressed downloads add W/; writes compare the stored object's ETag.
+            ...(response ? { ifMatch: response.blob.etag.replace(/^W\//, '') } : { allowOverwrite: false }),
+          });
         }
-        throw error;
       }
+      // Failed payment attempts and rate limits are state changes too. Commit before rethrowing.
+      phase = 'operation';
+      if (failed) throw failure;
+      return value as T;
+    } catch (error) {
+      const kind = demoStorageFailure(error);
+      const delay = Math.max(demoStorageRetryAfter(error), Math.min(500, 40 * 2 ** attempt) + Math.random() * 80);
+      if (kind !== 'permanent' && attempt < 11 && performance.now() + delay < deadline) {
+        await backoff(delay);
+        continue;
+      }
+      // Never log request inputs, cookies, credentials or snapshot contents.
+      if (phase !== 'operation' || (error instanceof Error && error.message.startsWith('DEMO_STORAGE_'))) {
+        console.error('TrustGo demo storage unavailable', { phase, kind, attempts: attempt + 1 });
+      }
+      throw error;
     }
-    // Failed payment attempts and rate limits are state changes too. Commit before rethrowing.
-    if (failed) throw failure;
-    return value as T;
   }
   throw new Error('DEMO_STORAGE_BUSY');
 }

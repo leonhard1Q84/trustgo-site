@@ -14,10 +14,12 @@ export const dynamic = 'force-dynamic';
 
 async function handle(request: Request, context: { params: Promise<{ action: string[] }> }) {
   try {
+    const { action } = await context.params;
+    const [resource, id, operation] = action;
+    // Read polling must not write a global counter on every request.
+    if (request.method === 'GET') checkRentalRequest(request, resource);
     return await withDemoState(async () => {
-      const { action } = await context.params;
-      const [resource, id, operation] = action;
-      checkRentalRequest(request, resource);
+      if (request.method !== 'GET') checkRentalRequest(request, resource);
       if (request.method === 'GET' && resource === 'guest-bookings' && action.length === 1) {
         const existingAccess = await rentalAccess();
         const orders = existingAccess ? listSessionBookings(existingAccess) : [];
@@ -79,7 +81,7 @@ async function handle(request: Request, context: { params: Promise<{ action: str
       const response = NextResponse.json(result, { headers: { 'Cache-Control': 'private, no-store' } });
       attachRentalCookie(response, access);
       return response;
-    });
+    }, { readOnly: request.method === 'GET' && ['pending-checkouts', 'guest-bookings'].includes(resource) });
   } catch (error) {
     const known = error instanceof RentalError;
     return NextResponse.json({ code: known ? error.code : 'service_unavailable', ...(known && error.field ? { field: error.field } : {}) }, {

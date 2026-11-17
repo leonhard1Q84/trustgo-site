@@ -17,6 +17,7 @@
     "test:local-scenarios": "node scripts/test-local-scenarios.cjs",
     "test:customer-account": "node scripts/test-customer-account.cjs",
     "test:demo-deployment": "node scripts/test-demo-deployment.cjs",
+    "test:demo-http": "node scripts/test-demo-http.mjs",
     "start": "next start -p 4000",
     "lint": "eslint ."
   },

@@ -1,7 +1,7 @@
 const DAY = 86_400_000;
 const RETENTION = 7 * DAY;
 
-/** Demo records expire after seven days; physical cleanup runs on the next access. */
+/** Demo records expire after seven days; physical cleanup is committed with the next business mutation. */
 export function pruneDemoSnapshot(namespaces: Record<string, object>, now = Date.now()) {
   const prune = (value: unknown, field: string) => {
     if (!(value instanceof Map)) return;

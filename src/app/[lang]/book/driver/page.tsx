@@ -76,5 +76,5 @@ async function DriverDetailsPage({
 }
 
 export default function Page(props: Parameters<typeof DriverDetailsPage>[0]) {
-  return withDemoState(() => DriverDetailsPage(props));
+  return withDemoState(() => DriverDetailsPage(props), { readOnly: true });
 }

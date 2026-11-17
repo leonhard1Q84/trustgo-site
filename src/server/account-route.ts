@@ -39,14 +39,17 @@ export function accountRoute<Args extends unknown[]>(
   return async (request: Request, ...args: Args): Promise<Response> => {
     if (!localAccountsEnabled() && action !== 'sign-out') return rejected('SERVICE_UNAVAILABLE', 503);
     try {
+      // Demo polling uses an instance-local read budget; sensitive mutations keep shared limits.
+      const source = createHash('sha256').update(request.headers.get('x-forwarded-for') ?? 'local').digest('hex');
+      if (request.method === 'GET' && !consume(`${source}:${action}`, 120, 60_000)) return rejected('RATE_LIMITED', 429);
       return await withDemoState(async () => {
         if (request.method !== 'GET') {
           if (request.headers.get('origin') !== new URL(request.url).origin) return rejected('INVALID_REQUEST', 403);
           if (!request.headers.get('content-type')?.startsWith('application/json')) return rejected('INVALID_REQUEST', 415);
         }
         // The reverse proxy must replace, rather than append to, the forwarded IP.
-        const source = createHash('sha256').update(request.headers.get('x-forwarded-for') ?? 'local').digest('hex');
-        if (!consume(`${source}:${action}`, action === 'sign-in' ? 20 : 120, 60_000)) return rejected('RATE_LIMITED', 429);
+        if (request.method !== 'GET'
+          && !consume(`${source}:${action}`, action === 'sign-in' ? 20 : 120, 60_000)) return rejected('RATE_LIMITED', 429);
         if (['POST', 'PATCH', 'DELETE'].includes(request.method)) {
           const text = await request.clone().text();
           if (text.length > 20_000) return rejected('INVALID_REQUEST', 413);
@@ -65,7 +68,7 @@ export function accountRoute<Args extends unknown[]>(
         const response = await handler(request.clone(), ...args);
         response.headers.set('Cache-Control', 'private, no-store');
         return response;
-      });
+      }, { readOnly: request.method === 'GET' });
     } catch (error) {
       return rejected(error instanceof SyntaxError ? 'INVALID_REQUEST' : 'SERVICE_UNAVAILABLE', error instanceof SyntaxError ? 400 : 503);
     }

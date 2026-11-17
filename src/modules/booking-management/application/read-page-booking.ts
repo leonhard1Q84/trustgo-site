@@ -20,5 +20,5 @@ export async function readPageBooking(code: string, lang: string, path: string) 
       }
       throw error;
     }
-  });
+  }, { readOnly: true });
 }
