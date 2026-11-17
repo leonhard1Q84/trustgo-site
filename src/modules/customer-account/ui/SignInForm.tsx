@@ -198,7 +198,7 @@ export const SignInForm: React.FC<SignInFormProps> = ({lang}) => {
     <div className="rounded-card border border-slate-200 bg-white p-6 sm:p-8 shadow-xs">
       <div className="text-center mb-8">
         <div className="inline-flex justify-center mb-4">
-          <BrandLogo className="h-10 sm:h-11 w-auto" />
+          <BrandLogo lang={lang} />
         </div>
         <h1 className="text-2xl sm:text-3xl font-black text-neutral-950 tracking-tight">
           {mode === 'password' ? t('account.action.sign_in') : t('account.action.set_password')}

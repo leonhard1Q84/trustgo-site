@@ -310,7 +310,7 @@ export const AccountProfilePage: React.FC<AccountProfilePageProps> = ({lang}) =>
   if (!isAuthenticated || !account) {
     return (
       <div className="mx-auto max-w-md rounded-card border border-border bg-background p-8 text-center">
-        <BrandLogo className="mx-auto mb-4 h-8 w-auto" />
+        <BrandLogo lang={lang} className="mx-auto mb-4" />
         <h1 className="text-h3 font-bold text-foreground">{t('account.profile.sign_in_required_title')}</h1>
         <p className="mt-2 text-body text-foreground-secondary">{t('account.profile.sign_in_required_desc')}</p>
         <Link

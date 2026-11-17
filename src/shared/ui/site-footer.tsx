@@ -114,7 +114,7 @@ export function SiteFooter({ lang }: SiteFooterProps) {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-8 mb-12">
           {/* 1. Brand Column (4 cols) */}
           <div className="col-span-1 md:col-span-2 lg:col-span-4">
-            <BrandLogo lang={lang} className="mb-3" />
+            <BrandLogo lang={lang} variant="footer" className="mb-3" />
             <p className="text-sm font-semibold text-foreground mb-1.5">{brand.slogan}</p>
             <p className="text-xs text-foreground-secondary leading-relaxed max-w-sm">
               {dict.footer.description}

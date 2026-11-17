@@ -8,8 +8,13 @@ export const siteMetadata: Metadata = {
   title: 'TrustGo | Go Easy. Go Happy. — Worldwide Car Rental',
   description: 'Simple, transparent car rental for carefree road adventures worldwide.',
   icons: {
-    icon: '/icon.png',
-    apple: '/apple-icon.png',
+    icon: [
+      { url: '/favicon-32x32.png', type: 'image/png', sizes: '32x32' },
+      { url: '/favicon-16x16.png', type: 'image/png', sizes: '16x16' },
+      { url: '/icon.png', type: 'image/png', sizes: '512x512' },
+    ],
+    shortcut: '/favicon.ico',
+    apple: { url: '/apple-icon.png', sizes: '180x180' },
   },
 };
 

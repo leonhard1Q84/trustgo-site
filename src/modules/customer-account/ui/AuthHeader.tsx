@@ -21,9 +21,7 @@ export const AuthHeader: React.FC<AuthHeaderProps> = ({lang, mode}) => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-18 flex items-center justify-between">
         {/* Left: Brand Logo */}
         <div className="flex items-center gap-4">
-          <Link href={`/${lang}/`} className="inline-flex items-center transition-opacity hover:opacity-90">
-            <BrandLogo className="h-8 sm:h-9 w-auto" />
-          </Link>
+          <BrandLogo lang={lang} />
         </div>
 
         {/* Right: Quick Switch & Back to Home */}

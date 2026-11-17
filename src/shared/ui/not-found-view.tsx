@@ -20,9 +20,7 @@ export function NotFoundView({
       {/* 顶部极简 Brand Header */}
       {standalone && (
         <header className="relative z-10 w-full max-w-5xl mx-auto px-6 py-6 flex items-center justify-start">
-          <Link href={`/${lang}`} className="inline-block" aria-label="TrustGo Home">
-            <BrandLogo />
-          </Link>
+          <BrandLogo lang={lang} />
         </header>
       )}
 
