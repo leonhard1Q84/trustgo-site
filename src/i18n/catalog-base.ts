@@ -49,12 +49,12 @@ export const translations: Translations = {
     ZH: '國際自駕 官方自營品牌',
   },
   home_hero_title: {
-    EN: 'Your Trusted Companion for Carefree Road Trips',
-    ZH: '找到理想座駕，輕鬆探索世界',
+    EN: 'Go Easy. Go Happy.',
+    ZH: '輕鬆出發，快樂同行',
   },
   home_hero_subtitle: {
-    EN: 'From booking to pick-up, clear details for a confident journey.',
-    ZH: '從預訂到取車，把重要的事看清楚，輕鬆開啟旅程。',
+    EN: 'From booking to return, easy car rental for a carefree journey.',
+    ZH: '從預訂到還車，讓租車更簡單，讓旅程更自在。',
   },
 
   // Search Bar

@@ -35,9 +35,9 @@ export const jaTranslations: Record<string, string> = {
 
   // Home Hero
   home_hero_badge: '海外レンタカー 直営公式ブランド',
-  home_hero_title: '理想の一台を見つけて、自由に世界をドライブ',
+  home_hero_title: '安心して出発、楽しい旅を',
   home_hero_subtitle:
-    '予約から出発まで、重要な情報を事前に確認して安心して旅をスタート。',
+    '予約から返却まで、レンタカーをもっと簡単に、旅をもっと自由に。',
 
   // Search Bar
   search_pickup_location: '出発営業所',

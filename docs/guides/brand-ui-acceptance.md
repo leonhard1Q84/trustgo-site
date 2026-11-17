@@ -40,3 +40,19 @@
 | 同上 | 768 × 1024、390 × 844 | 查看首屏并滚动到搜索卡，打开地点与日期控件 | 裁切保留右侧公路，无横向溢出；标题清晰，搜索表单与弹层可操作。 | 待确认 |
 
 此次 `npm run build`、`npm run check:build` 均通过；五种语言首页的最终 HTML 均引用本地海岸公路 WebP，包含响应式裁切规则且不再引用旧背景 URL。原始 PNG 与 Figma 下载内容的 SHA-256 一致。预览入口已复用健康服务；上述视觉及交互检查仍待人工确认。
+
+## 首页 Slogan 更新（2026-11-17）
+
+来源：[Figma 首页文案，节点 `1:1261`](https://www.figma.com/design/iFvRMw5bmLZLhwegZB4qtK/TrustGo?node-id=1-1261)。首页标题与副文案同步如下；标题、页面 SEO title、description、Open Graph 描述及主图替代文本继续通过现有 i18n 入口读取。
+
+| 语言 | 首页标题 | 副文案 |
+| --- | --- | --- |
+| EN | Go Easy. Go Happy. | From booking to return, easy car rental for a carefree journey. |
+| ZH | 輕鬆出發，快樂同行 | 從預訂到還車，讓租車更簡單，讓旅程更自在。 |
+| JA | 安心して出発、楽しい旅を | 予約から返却まで、レンタカーをもっと簡単に、旅をもっと自由に。 |
+| ES | Viaja fácil, viaja feliz | Desde la reserva hasta la devolución, alquila con facilidad y viaja con libertad. |
+| KO | 편안한 출발, 즐거운 동행 | 예약부터 반납까지, 더 간편한 렌터카로 더 자유로운 여행을 즐기세요. |
+
+人工验收仍待确认：在 Edge 分别打开 `/en`、`/zh`、`/ja`、`/es`、`/ko`，使用 1440 × 900、768 × 1024、390 × 844 视口查看首页首屏，预期标题与副文案完整可读、自然换行、无横向溢出或与搜索卡重叠；切换语言后文案随语言更新，并可正常选择门店及取还车日期、发起车辆搜索。
+
+`npm run check:i18n`、`npm run build`、`npm run check:build` 均通过。五种语言生成的首页 HTML 已逐项核对唯一 H1、新副文案、SEO title、description、Open Graph 描述与主图替代文本；本地预览入口已复用健康服务。构建存在项目原有 lint 警告，无构建错误。

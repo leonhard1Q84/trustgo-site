@@ -35,9 +35,9 @@ export const koTranslations: Record<string, string> = {
 
   // Home Hero
   home_hero_badge: '해외 렌터카 공식 직영 브랜드',
-  home_hero_title: '나에게 꼭 맞는 차량으로 가볍게 떠나는 세계 여행',
+  home_hero_title: '편안한 출발, 즐거운 동행',
   home_hero_subtitle:
-    '예약부터 차량 인수까지, 중요한 정보를 미리 확인하고 가볍게 여행을 시작하세요.',
+    '예약부터 반납까지, 더 간편한 렌터카로 더 자유로운 여행을 즐기세요.',
 
   // Search Bar
   search_pickup_location: '인수 지점 (픽업)',

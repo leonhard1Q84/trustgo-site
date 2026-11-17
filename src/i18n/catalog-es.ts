@@ -36,9 +36,9 @@ export const esTranslations: Record<string, string> = {
 
   // Home Hero
   home_hero_badge: 'Marca Oficial de Alquiler de Coches',
-  home_hero_title: 'Tu compañero de confianza para viajes sin complicaciones',
+  home_hero_title: 'Viaja fácil, viaja feliz',
   home_hero_subtitle:
-    'Desde la reserva hasta la recogida, todo claro para viajar con total tranquilidad.',
+    'Desde la reserva hasta la devolución, alquila con facilidad y viaja con libertad.',
 
   // Search Bar
   search_pickup_location: 'Lugar de recogida',
