@@ -1,0 +1,24 @@
+name: Demo acceptance (manual)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: trustgo-demo-acceptance
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      # No dependencies, secrets, browser automation, schedule or push trigger.
+      - name: Verify the published demo booking lifecycle
+        run: node scripts/test-demo-http.mjs https://trustgo-rental.vercel.app

@@ -24,9 +24,9 @@ Module._load = function (name, parent, ...rest) {
     async query(sql, params, options) {
       assert.ok(options.fetchOptions.signal instanceof AbortSignal);
       assert.equal(options.fetchOptions.cache, 'no-store');
-      if (input.storageFailure) throw new Error('database permission denied');
+      if (input.storageFailure) throw new Error('Server error (HTTP status 403): Forbidden');
       if (sql.startsWith('SELECT')) {
-        if (input.readFailures > 0) { input.readFailures--; throw new TypeError('fetch failed'); }
+        if (input.readFailures > 0) { input.readFailures--; throw new Error('Server error (HTTP status 503): temporarily unavailable'); }
         const record = JSON.parse(fileState().toString());
         return [record];
       }
