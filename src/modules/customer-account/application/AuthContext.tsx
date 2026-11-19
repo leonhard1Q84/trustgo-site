@@ -11,6 +11,7 @@ import type {
 import {CustomerAccountService} from './customerAccountService';
 import {AuthModalProvider} from './AuthModalContext';
 import {ACCOUNT_UNAUTHORIZED_EVENT} from './account-request';
+import { createVisibleRefresh } from '@/shared/application/visible-refresh';
 
 interface AuthContextType {
   user: PublicAccountProfile | null;
@@ -51,7 +52,7 @@ export function AuthProvider({children}: {children: React.ReactNode}) {
         return false;
       }
     } catch {
-      if (current === revision.current) commitUser(null);
+      // Keep the last verified profile on a transport failure; APIs still enforce access.
       return false;
     } finally {
       if (current === revision.current) setIsLoading(false);
@@ -61,18 +62,16 @@ export function AuthProvider({children}: {children: React.ReactNode}) {
   useEffect(() => {
     void refreshSession();
     const expire = () => setUser(null);
-    const refresh = () => { if (document.visibilityState === 'visible') void refreshSession(); };
+    const refresh = createVisibleRefresh(() => { void refreshSession(); });
     window.addEventListener(ACCOUNT_UNAUTHORIZED_EVENT, expire);
     window.addEventListener('focus', refresh);
     document.addEventListener('visibilitychange', refresh);
-    const timer = setInterval(refresh, 60_000);
     if (typeof BroadcastChannel !== 'undefined') {
       channel.current = new BroadcastChannel('trustgo-account');
       channel.current.onmessage = () => void refreshSession();
     }
     return () => {
       revision.current += 1;
-      clearInterval(timer);
       window.removeEventListener(ACCOUNT_UNAUTHORIZED_EVENT, expire);
       window.removeEventListener('focus', refresh);
       document.removeEventListener('visibilitychange', refresh);

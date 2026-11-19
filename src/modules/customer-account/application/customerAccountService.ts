@@ -108,18 +108,9 @@ export class CustomerAccountService {
    * Get current auth session
    */
   static async getSession(): Promise<SessionResponse> {
-    try {
-      const response = await accountFetch('/api/account/session', {
-        method: 'GET',
-        cache: 'no-store',
-      });
-      if (!response.ok) return {authenticated: false};
-      const data = await response.json();
-      return data;
-    } catch (error) {
-      console.error('CustomerAccountService.getSession error:', error);
-      return {authenticated: false};
-    }
+    const response = await accountFetch('/api/account/session', { method: 'GET', cache: 'no-store' });
+    if (!response.ok) throw new Error('SERVICE_UNAVAILABLE');
+    return response.json();
   }
 
   /**

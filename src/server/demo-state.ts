@@ -1,16 +1,15 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { deserialize, serialize } from 'node:v8';
 import { setTimeout as backoff } from 'node:timers/promises';
-import { get, put } from '@vercel/blob';
+import { readDemoDatabase, commitDemoDatabase } from './demo-database';
 import { demoDeploymentEnabled } from './demo-mode';
 import { pruneDemoSnapshot } from './demo-retention';
-import { demoStorageFailure, demoStorageRetryAfter } from './demo-storage-errors';
+import { demoStorageFailure } from './demo-storage-errors';
 
 type Namespaces = Record<string, object>;
 interface Snapshot { version: 1; namespaces: Namespaces }
 const globals = globalThis as typeof globalThis & { __tgDemoContext?: AsyncLocalStorage<Namespaces> };
 const context = globals.__tgDemoContext ??= new AsyncLocalStorage<Namespaces>();
-const PATH = `trustgo-demo/${process.env.VERCEL_ENV === 'preview' ? 'preview' : 'production'}-state-v1.bin`;
 const MAX_BYTES = 8 * 1024 * 1024;
 
 /** A request owns a snapshot; concurrent requests never exchange mutable objects. */
@@ -33,20 +32,18 @@ export function demoState<T extends object>(key: string, fallback: T, empty: () 
 /** Read fresh state; only business changes participate in conditional writes. */
 export async function withDemoState<T>(operation: () => Promise<T>, options: { readOnly?: boolean } = {}): Promise<T> {
   if (context.getStore() || !demoDeploymentEnabled()) return operation();
-  if (!process.env.BLOB_READ_WRITE_TOKEN && !process.env.BLOB_STORE_ID) {
+  if (!process.env.DATABASE_URL) {
     if (process.env.VERCEL) throw new Error('DEMO_STORAGE_UNAVAILABLE');
     return operation();
   }
   const deadline = performance.now() + 12_000;
-  for (let attempt = 0; attempt < 12; attempt++) {
+  for (let attempt = 0; attempt < 6; attempt++) {
     let phase: 'read' | 'operation' | 'write' = 'read';
     try {
       const signal = () => AbortSignal.timeout(Math.max(1, Math.min(4000, Math.ceil(deadline - performance.now()))));
-      const response = await get(PATH, { access: 'private', useCache: false, abortSignal: signal() });
-      if (response && response.statusCode !== 200) throw new Error('DEMO_STORAGE_INVALID');
-      const bytes = response ? Buffer.from(await new Response(response.stream).arrayBuffer()) : undefined;
-      if (bytes && bytes.length > MAX_BYTES) throw new Error('DEMO_STORAGE_LIMIT');
-      const snapshot: Snapshot = bytes ? deserialize(bytes) : { version: 1, namespaces: {} };
+      const { revision, bytes } = await readDemoDatabase(signal());
+      if (bytes.length > MAX_BYTES) throw new Error('DEMO_STORAGE_LIMIT');
+      const snapshot: Snapshot = deserialize(bytes);
       if (snapshot.version !== 1 || !snapshot.namespaces) throw new Error('DEMO_STORAGE_INVALID');
       pruneDemoSnapshot(snapshot.namespaces);
       // Cleanup alone must not make each page load compete for the same write lock.
@@ -65,12 +62,7 @@ export async function withDemoState<T>(operation: () => Promise<T>, options: { r
         if (updated.length > MAX_BYTES) throw new Error('DEMO_STORAGE_LIMIT');
         if (!baseline.equals(updated)) {
           phase = 'write';
-          await put(PATH, updated, {
-            access: 'private', addRandomSuffix: false, contentType: 'application/octet-stream',
-            abortSignal: signal(),
-            // Compressed downloads add W/; writes compare the stored object's ETag.
-            ...(response ? { ifMatch: response.blob.etag.replace(/^W\//, '') } : { allowOverwrite: false }),
-          });
+          await commitDemoDatabase(revision, updated, signal());
         }
       }
       // Failed payment attempts and rate limits are state changes too. Commit before rethrowing.
@@ -78,9 +70,9 @@ export async function withDemoState<T>(operation: () => Promise<T>, options: { r
       if (failed) throw failure;
       return value as T;
     } catch (error) {
-      const kind = demoStorageFailure(error);
-      const delay = Math.max(demoStorageRetryAfter(error), Math.min(500, 40 * 2 ** attempt) + Math.random() * 80);
-      if (kind !== 'permanent' && attempt < 11 && performance.now() + delay < deadline) {
+      const kind = phase === 'operation' ? 'permanent' : demoStorageFailure(error);
+      const delay = Math.min(500, 40 * 2 ** attempt) + Math.random() * 80;
+      if (kind !== 'permanent' && attempt < 5 && performance.now() + delay < deadline) {
         await backoff(delay);
         continue;
       }

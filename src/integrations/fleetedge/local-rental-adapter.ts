@@ -19,6 +19,9 @@ import { confirmLocalPayment, localPaymentResult } from './local-payment';
 import { throwLocalBookingFault } from './local-booking-faults';
 import { localAdaptersEnabled, localQuoteLifetimeMs } from '@/server/demo-mode';
 import { demoState } from '@/server/demo-state';
+import { poiCatalog } from '@/modules/destination-search/poi-catalog';
+import { getStoreByCode } from '@/modules/destination-search/store-directory';
+import { readDemoQuote, signDemoQuote, type DemoQuote } from './demo-quote';
 
 export interface RentalAccess { sessionId: string; accountId?: string }
 export interface CreateReservationInput {
@@ -56,41 +59,70 @@ function prune(now = Date.now()) {
   for (const [key, value] of state.operations) if (value.expires <= now) state.operations.delete(key);
 }
 
-export function createRateDetails(form: SearchFormState, offerId: string, lang: RouteLanguage): RateDetails {
+function buildRateDetails(form: SearchFormState, offerId: string, lang: RouteLanguage, issued = Date.now(), expires = issued + localQuoteLifetimeMs()): RateDetails {
   assertLocalRentalEnabled();
-  prune();
   validateSearch(form);
   form = { ...form, licenseCountry: normalizeLicenseCountry(form.licenseCountry) };
-  const offer = getAvailableStoreOffers(form).find(o => o.offerId === offerId);
+  const offer = getAvailableStoreOffers(form, issued).find(o => o.offerId === offerId);
   const base = offer && getVehicleById(offer.vehicleId);
   if (!offer || !base) throw new RentalError('rate_unavailable', 404);
   // Use the selected depot's IANA zone; FE owns real rental-day billing.
   const pickup = depotDateTime(form.pickupDate, form.pickupTime, offer.timeZone);
   const dropoff = depotDateTime(form.returnDate, form.returnTime, offer.timeZone);
-  if (Date.parse(pickup) <= Date.now() || Date.parse(dropoff) <= Date.parse(pickup)) {
+  if (Date.parse(pickup) <= issued || Date.parse(dropoff) <= Date.parse(pickup)) {
     throw new RentalError('invalid_search', 400);
   }
-  const checkedAt = Date.now();
-  const expires = checkedAt + localQuoteLifetimeMs();
-  const rateDetailsId = randomUUID();
+  const checkedAt = issued;
+  // Use catalog names, not the user's search text, in the portable public quote.
+  const canonicalLocation = (location: SearchFormState['pickup']) => {
+    const poi = poiCatalog.find(p => p.poiId === location.poiId);
+    const store = location.storeCode ? getStoreByCode(location.storeCode) : undefined;
+    const names = poi?.localizedNames ?? store?.localizedNames;
+    const labels = Object.values(names ?? offer.storeNames).flatMap(name => [name, name.replace(/^TrustGo-/, '')]);
+    return { ...location, label: labels.includes(location.label) ? location.label
+      : (names ?? offer.storeNames)[routeToLanguage(lang)] };
+  };
+  form = { ...form, pickup: canonicalLocation(form.pickup),
+    dropoff: form.differentReturn ? canonicalLocation(form.dropoff) : { label: '' } };
   const trip: RentalTripDetails = {
     pickupLocation: offer.storeNames[routeToLanguage(lang)], returnLocation: offer.storeNames[routeToLanguage(lang)],
     pickupDateTime: pickup, returnDateTime: dropoff,
     rentalDays: getRentalDays(form.pickupDate, form.returnDate, form.pickupTime, form.returnTime),
     driverAge: form.driverAge, licenseCountry: form.licenseCountry,
     pickupStoreCode: offer.storeCode, returnStoreCode: offer.storeCode,
-    timeZone: offer.timeZone, offerId, rateDetailsId, rateExpiresAt: new Date(expires).toISOString(),
+    timeZone: offer.timeZone, offerId, rateExpiresAt: new Date(expires).toISOString(),
     rateCheckedAt: new Date(checkedAt).toISOString(),
   };
-  const details = { vehicle: applyOfferToVehicle(base, offer, routeToLanguage(lang)), trip, search: form };
-  state.rates.set(rateDetailsId, { details: structuredClone(details), expires });
-  return structuredClone(details);
+  return { vehicle: applyOfferToVehicle(base, offer, routeToLanguage(lang)), trip, search: form };
+}
+
+function catalogVersion(details: RateDetails) {
+  return createHash('sha256').update(JSON.stringify(details.vehicle)).digest('base64url');
+}
+
+export function createRateDetails(form: SearchFormState, offerId: string, lang: RouteLanguage): RateDetails {
+  const details = buildRateDetails(form, offerId, lang);
+  details.trip.rateDetailsId = signDemoQuote({ form: details.search, offerId, lang,
+    issued: Date.parse(details.trip.rateCheckedAt!), expires: Date.parse(details.trip.rateExpiresAt!),
+    catalog: catalogVersion(details) });
+  return details;
+}
+
+function portableRate(id: string): { details: RateDetails; expires: number } | undefined {
+  if (typeof id !== 'string' || !id.startsWith('dq1.')) return undefined;
+  const quote: DemoQuote = readDemoQuote(id);
+  let details: RateDetails;
+  try { details = buildRateDetails(quote.form, quote.offerId, quote.lang, quote.issued, quote.expires); }
+  catch { throw new RentalError('rate_expired', 410); }
+  // A catalog change invalidates an old quote rather than changing its agreed price.
+  if (catalogVersion(details) !== quote.catalog) throw new RentalError('rate_expired', 410);
+  details.trip.rateDetailsId = id;
+  return { details, expires: quote.expires };
 }
 
 export function getRateDetails(id: string): RateDetails {
   assertLocalRentalEnabled();
-  prune();
-  const rate = state.rates.get(id);
+  const rate = portableRate(id) ?? state.rates.get(id);
   if (!rate || rate.expires <= Date.now()) throw new RentalError('rate_expired', 410);
   return structuredClone(rate.details);
 }
@@ -98,8 +130,7 @@ export function getRateDetails(id: string): RateDetails {
 /** Expired public snapshots are display-only: the existing expiry dialog can requery them. */
 export function getRateDetailsForDisplay(id: string, lang?: RouteLanguage): RateDetails {
   assertLocalRentalEnabled();
-  prune();
-  const rate = state.rates.get(id);
+  const rate = portableRate(id) ?? state.rates.get(id);
   if (!rate) throw new RentalError('rate_expired', 410);
   const details = structuredClone(rate.details);
   details.trip.rateCheckedAt = new Date(Date.now()).toISOString();

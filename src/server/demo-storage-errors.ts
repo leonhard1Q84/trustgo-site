@@ -1,22 +1,9 @@
-import {
-  BlobError, BlobPreconditionFailedError, BlobRequestAbortedError,
-  BlobServiceNotAvailable, BlobServiceRateLimited, BlobUnknownError,
-} from '@vercel/blob';
-
-/** Overlapping conditional writes can be reported as bad_request instead of HTTP 412. */
+/** Retry only concurrency and temporary transport/service failures, with a bounded budget. */
 export function demoStorageFailure(error: unknown): 'conflict' | 'transient' | 'permanent' {
-  if (error instanceof BlobPreconditionFailedError || (error instanceof BlobError
-    && /conditional request cannot succeed due to a conflicting operation|already exists/i.test(error.message))) {
-    return 'conflict';
-  }
-  if (error instanceof BlobRequestAbortedError || error instanceof BlobServiceNotAvailable
-    || error instanceof BlobServiceRateLimited || error instanceof BlobUnknownError
-    || (error instanceof BlobError && /Failed to fetch blob: (408|429|5\d\d)\b/.test(error.message))
-    || (error instanceof Error && ['AbortError', 'TimeoutError'].includes(error.name))
-    || (error instanceof TypeError && /fetch failed|network|terminated/i.test(error.message))) return 'transient';
+  if (error instanceof Error && error.message === 'DEMO_STORAGE_CONFLICT') return 'conflict';
+  const code = (error as { code?: string } | null)?.code;
+  if (code && ['40001', '40P01', '53300', '57P01', '57P02', '57P03', '08000', '08006'].includes(code)) return 'transient';
+  if (error instanceof Error && (['AbortError', 'TimeoutError'].includes(error.name)
+    || /fetch failed|network|terminated|Error connecting to database|HTTP (408|429|5\d\d)\b/i.test(error.message))) return 'transient';
   return 'permanent';
-}
-
-export function demoStorageRetryAfter(error: unknown): number {
-  return error instanceof BlobServiceRateLimited ? error.retryAfter * 1000 : 0;
 }

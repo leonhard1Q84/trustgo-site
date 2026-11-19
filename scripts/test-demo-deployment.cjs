@@ -6,13 +6,11 @@ const os = require('node:os');
 const crypto = require('node:crypto');
 const Module = require('node:module');
 const ts = require('typescript');
-const blobSDK = require('@vercel/blob');
 const root = path.resolve(__dirname, '..');
 const resolve = Module._resolveFilename;
 const load = Module._load;
 let input = {};
 const cookieJar = new Map();
-class Conflict extends blobSDK.BlobPreconditionFailedError {}
 Module._resolveFilename = function (name, parent, ...rest) {
   return resolve.call(this, name.startsWith('@/') ? path.join(root, 'src', name.slice(2)) : name, parent, ...rest);
 };
@@ -20,41 +18,36 @@ const fileState = () => {
   try { return fs.readFileSync(process.env.TG_TEST_STATE); }
   catch (error) { if (error.code === 'ENOENT') return null; throw error; }
 };
-const etag = bytes => `"${crypto.createHash('sha256').update(bytes).digest('hex')}"`;
 Module._load = function (name, parent, ...rest) {
   if (name === 'next/headers') return { cookies: async () => ({ get: key => cookieJar.has(key) ? { value: cookieJar.get(key) } : undefined }) };
-  if (name === '@vercel/blob') return {
-    ...blobSDK,
-    BlobPreconditionFailedError: Conflict,
-    async get(_pathname, options) {
-      assert.equal(options.access, 'private'); assert.equal(options.useCache, false);
-      if (input.storageFailure) throw new Error('storage unavailable');
-      if (input.readFailures > 0) { input.readFailures--; throw new blobSDK.BlobServiceNotAvailable(); }
-      const bytes = fileState();
-      // Real Blob downloads use a weak ETag when compression transforms the response.
-      return bytes ? { statusCode: 200, stream: new Response(bytes).body, blob: { etag: `W/${etag(bytes)}` } } : null;
-    },
-    async put(_pathname, bytes, options) {
-      assert.equal(options.access, 'private'); assert.equal(options.addRandomSuffix, false);
-      if (input.noWrites) throw new Error('Read polling attempted a snapshot write');
-      if (input.writeConflicts > 0) {
-        input.writeConflicts--;
-        throw new blobSDK.BlobError('The conditional request cannot succeed due to a conflicting operation against this resource.');
+  if (name === '@neondatabase/serverless') return { neon: () => ({
+    async query(sql, params, options) {
+      assert.ok(options.fetchOptions.signal instanceof AbortSignal);
+      assert.equal(options.fetchOptions.cache, 'no-store');
+      if (input.storageFailure) throw new Error('database permission denied');
+      if (sql.startsWith('SELECT')) {
+        if (input.readFailures > 0) { input.readFailures--; throw new TypeError('fetch failed'); }
+        const record = JSON.parse(fileState().toString());
+        return [record];
       }
-      if (input.permanentWriteFailure) throw new blobSDK.BlobAccessError();
+      assert.ok(sql.startsWith('UPDATE'));
+      if (input.noWrites) throw new Error('Read attempted a snapshot write');
+      if (input.writeConflicts > 0) { input.writeConflicts--; return []; }
+      if (input.permanentWriteFailure) throw new Error('database permission denied');
       const lock = `${process.env.TG_TEST_STATE}.lock`;
-      try { fs.mkdirSync(lock); } catch { throw new Conflict(); }
+      try { fs.mkdirSync(lock); } catch { return []; }
       try {
-        const previous = fileState();
-        if (options.ifMatch ? !previous || etag(previous) !== options.ifMatch : previous) throw new Conflict();
+        const previous = JSON.parse(fileState().toString());
+        if (String(previous.revision) !== params[2]) return [];
+        const record = { revision: previous.revision + 1, payload: params[0] };
         const temporary = `${process.env.TG_TEST_STATE}.${process.pid}.tmp`;
-        fs.writeFileSync(temporary, bytes);
+        fs.writeFileSync(temporary, JSON.stringify(record));
         fs.renameSync(temporary, process.env.TG_TEST_STATE);
       } finally { fs.rmdirSync(lock); }
-      // A successful write can lose its HTTP response; replay must preserve idempotency.
       if (input.lostWriteResponse) { input.lostWriteResponse = false; throw new TypeError('fetch failed'); }
+      return [{ revision: 1 }];
     },
-  };
+  }) };
   // Render real server pages; only visual leaf components are stubbed.
   if (parent?.filename.includes('/src/app/[lang]/')) {
     if (name === '@/i18n/useI18n') return { getTranslation: key => key };
@@ -85,7 +78,8 @@ async function child() {
   input = JSON.parse(fs.readFileSync(0, 'utf8'));
   for (const [key, value] of input.cookies ?? []) cookieJar.set(key, value);
   process.env.NODE_ENV = 'production'; process.env.TRUSTGO_DEMO_MODE = 'true';
-  process.env.BLOB_READ_WRITE_TOKEN = 'isolated-test'; process.env.VERCEL = '1';
+  process.env.DATABASE_URL = 'postgresql://isolated-test'; process.env.VERCEL = '1';
+  process.env.TRUSTGO_DEMO_QUOTE_SECRET = 'isolated-test-quote-secret-at-least-32-characters';
   if (input.advance) { const now = Date.now() + input.advance; Date.now = () => now; }
   if (input.action === 'quote') {
     const form = require('../src/modules/rental-search/domain/search-form.ts');
@@ -122,6 +116,8 @@ if (process.argv.includes('--child')) {
 } else {
   (async () => {
     const folder = fs.mkdtempSync(path.join(os.tmpdir(), 'trustgo-demo-test-'));
+    fs.writeFileSync(path.join(folder, 'state.bin'), JSON.stringify({ revision: 0, payload:
+      require('node:v8').serialize({ version: 1, namespaces: {} }).toString('base64') }));
     const fileStateForParent = () => fs.readFileSync(path.join(folder, 'state.bin'));
     const call = payload => new Promise((resolve, reject) => {
       const proc = require('node:child_process').spawn(process.execPath, [__filename, '--child'], {
@@ -148,6 +144,21 @@ if (process.argv.includes('--child')) {
         const driver = await call({ action: 'driver', rate: quote.rateDetailsId });
         assert.equal(driver.rateDetailsId, quote.rateDetailsId); assert.equal(driver.rateExpiresAt, quote.rateExpiresAt);
       });
+      await test('public rates and driver SSR work with permanently unavailable business storage', async () => {
+        const offlineQuote = await call({ action: 'quote', storageFailure: true });
+        const driver = await call({ action: 'driver', rate: offlineQuote.rateDetailsId, storageFailure: true });
+        assert.equal(driver.rateDetailsId, offlineQuote.rateDetailsId);
+      });
+      await test('unsigned or tampered quote cannot reach the driver form', async () => {
+        const parts = quote.rateDetailsId.split('.');
+        parts[1] = Buffer.from(JSON.stringify({ ...JSON.parse(Buffer.from(parts[1], 'base64url')), expires: Date.now() + 86400000 })).toString('base64url');
+        await assert.rejects(call({ action: 'driver', rate: parts.join('.') }));
+      });
+      await test('anonymous account, pending and guest reads do not access the database', async () => {
+        for (const action of ['account/session', 'pending-checkouts', 'guest-bookings']) {
+          assert.equal((await call({ action, storageFailure: true })).status, 200);
+        }
+      });
       await test('new API processes create one authorized reservation from a page quote, including concurrent retries', async () => {
         cookies = (await call({ action: 'bookings' })).cookies;
         reservation = { rateDetailsId: quote.rateDetailsId, insuranceId: 'basic', equipment,
@@ -163,7 +174,7 @@ if (process.argv.includes('--child')) {
         assert.equal((await call({ action: 'checkout', code: booking.confirmationCode, cookies })).confirmationCode, booking.confirmationCode);
         assert.equal((await call({ action: `bookings/${booking.confirmationCode}` })).status, 404);
       });
-      await test('simultaneous checkout, account and navigation polling never writes the shared snapshot', async () => {
+      await test('simultaneous checkout, account and navigation reads never write the shared snapshot', async () => {
         const before = fileStateForParent();
         const actions = ['checkout', 'account/session', 'pending-checkouts', 'guest-bookings', 'bookings'];
         const results = await Promise.all(Array.from({ length: 15 }, (_, i) => call({ action: actions[i % actions.length],
@@ -174,7 +185,7 @@ if (process.argv.includes('--child')) {
         }
         assert.deepEqual(fileStateForParent(), before);
       });
-      await test('transient origin reads and the actual overlapping-conditional-write error recover', async () => {
+      await test('transient database reads and revision conflicts recover', async () => {
         const result = await call({ action: 'reservations', cookies, body: reservation, readFailures: 2, writeConflicts: 2 });
         assert.equal(result.status, 200); assert.equal(result.data.confirmationCode, booking.confirmationCode);
       });

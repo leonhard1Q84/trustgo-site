@@ -8,6 +8,7 @@ import type { CreateReservationInput } from '@/integrations/fleetedge/local-rent
 import {completeCheckoutAccount} from '@/server/checkout-account';
 import { localBookingFault } from '@/integrations/fleetedge/local-booking-faults';
 import { withDemoState } from '@/server/demo-state';
+import { hasDemoIdentity } from '@/server/demo-identity';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -17,7 +18,14 @@ async function handle(request: Request, context: { params: Promise<{ action: str
     const { action } = await context.params;
     const [resource, id, operation] = action;
     // Read polling must not write a global counter on every request.
-    if (request.method === 'GET') checkRentalRequest(request, resource);
+    if (request.method === 'GET') {
+      checkRentalRequest(request, resource);
+      if (action.length === 1 && ['pending-checkouts', 'guest-bookings'].includes(resource) && !await hasDemoIdentity()) {
+        return NextResponse.json(resource === 'pending-checkouts' ? [] : { status: 'missing', orders: [] }, {
+          headers: { 'Cache-Control': 'private, no-store' },
+        });
+      }
+    }
     return await withDemoState(async () => {
       if (request.method !== 'GET') checkRentalRequest(request, resource);
       if (request.method === 'GET' && resource === 'guest-bookings' && action.length === 1) {

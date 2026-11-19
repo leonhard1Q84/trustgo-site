@@ -1,7 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "env": {
-    "TRUSTGO_DEMO_MODE": "true",
-    "VERCEL_BLOB_RETRIES": "0"
+    "TRUSTGO_DEMO_MODE": "true"
   }
 }

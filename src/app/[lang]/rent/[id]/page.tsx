@@ -16,7 +16,6 @@ import { readRateSelection } from '@/modules/rate-details/domain/selection';
 import { buildCancellationPolicy } from '@/modules/rate-details/public-api';
 import { BookingProgressStepper } from '@/modules/reservation/public-api';
 import { RateDetailsView } from './RateDetailsView';
-import { withDemoState } from '@/server/demo-state';
 
 export const dynamic = 'force-dynamic';
 
@@ -109,5 +108,5 @@ async function RateDetailsPage({
 }
 
 export default function Page(props: Parameters<typeof RateDetailsPage>[0]) {
-  return withDemoState(() => RateDetailsPage(props));
+  return RateDetailsPage(props);
 }

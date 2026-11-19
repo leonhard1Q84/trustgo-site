@@ -8,6 +8,7 @@ import { bookingAccessRecoveryPath } from '../domain/access-recovery';
 import { getBookingByConfirmationCode } from './booking-store';
 import { subscribeBookingChanges } from './booking-events';
 import { createBookingSync } from './booking-sync';
+import { createVisibleRefresh } from '@/shared/application/visible-refresh';
 
 export function useBookingSync(initialBooking: BookingRecord, code: string, lang: string, surface: 'booking' | 'checkout') {
   const router = useRouter();
@@ -31,15 +32,12 @@ export function useBookingSync(initialBooking: BookingRecord, code: string, lang
       },
     });
     sync.current = current;
-    const visibleRefresh = () => { if (document.visibilityState === 'visible') void current.refresh(); };
-    void current.refresh();
-    const unsubscribe = subscribeBookingChanges(visibleRefresh);
+    const visibleRefresh = createVisibleRefresh(() => { void current.refresh(); });
+    const unsubscribe = subscribeBookingChanges(() => { void current.refresh(); });
     window.addEventListener('focus', visibleRefresh);
     document.addEventListener('visibilitychange', visibleRefresh);
-    const timer = setInterval(visibleRefresh, 5000);
     return () => {
       current.stop();
-      clearInterval(timer);
       unsubscribe();
       window.removeEventListener('focus', visibleRefresh);
       document.removeEventListener('visibilitychange', visibleRefresh);
@@ -50,5 +48,12 @@ export function useBookingSync(initialBooking: BookingRecord, code: string, lang
   }, []);
   const booking = snapshot.code === code ? snapshot.booking : initialBooking;
   const error = snapshot.code === code ? snapshot.error : null;
+  // One reconciliation after a known in-flight operation; idle pages never poll.
+  useEffect(() => {
+    const payment = ['processing', 'unknown'].includes(booking.paymentStatus ?? '');
+    if (!payment && booking.refundStatus !== 'processing') return;
+    const timer = setTimeout(() => { void sync.current?.refresh(); }, payment ? 12_000 : 6_000);
+    return () => clearTimeout(timer);
+  }, [code, booking.paymentStatus, booking.refundStatus]);
   return { booking, error, updateBooking };
 }

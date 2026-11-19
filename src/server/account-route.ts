@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { NextResponse } from 'next/server';
 import { localAdaptersEnabled } from './demo-mode';
 import { demoState, withDemoState } from './demo-state';
+import { hasDemoIdentity } from './demo-identity';
 
 // Internal verification includes explicitly opted-in demo deployments. Real
 // customer traffic still requires an account service and delivery provider.
@@ -42,7 +43,7 @@ export function accountRoute<Args extends unknown[]>(
       // Demo polling uses an instance-local read budget; sensitive mutations keep shared limits.
       const source = createHash('sha256').update(request.headers.get('x-forwarded-for') ?? 'local').digest('hex');
       if (request.method === 'GET' && !consume(`${source}:${action}`, 120, 60_000)) return rejected('RATE_LIMITED', 429);
-      return await withDemoState(async () => {
+      const run = async () => {
         if (request.method !== 'GET') {
           if (request.headers.get('origin') !== new URL(request.url).origin) return rejected('INVALID_REQUEST', 403);
           if (!request.headers.get('content-type')?.startsWith('application/json')) return rejected('INVALID_REQUEST', 415);
@@ -68,7 +69,9 @@ export function accountRoute<Args extends unknown[]>(
         const response = await handler(request.clone(), ...args);
         response.headers.set('Cache-Control', 'private, no-store');
         return response;
-      }, { readOnly: request.method === 'GET' });
+      };
+      if (request.method === 'GET' && !await hasDemoIdentity(true)) return await run();
+      return await withDemoState(run, { readOnly: request.method === 'GET' });
     } catch (error) {
       return rejected(error instanceof SyntaxError ? 'INVALID_REQUEST' : 'SERVICE_UNAVAILABLE', error instanceof SyntaxError ? 400 : 503);
     }

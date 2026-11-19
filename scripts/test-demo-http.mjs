@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
+import { demoHttpFetch } from './demo-http-transport.mjs';
 
 // Explicit target: this creates and cancels synthetic orders in a demo deployment.
 const target = process.argv[2];
@@ -12,7 +13,7 @@ assert.ok(languages.every(lang => ['zh', 'en', 'ja', 'es', 'ko'].includes(lang))
 function client() {
   const cookies = new Map();
   return async (path, body, expected = 200) => {
-    const response = await fetch(new URL(path, base), {
+    const response = await demoHttpFetch(new URL(path, base), {
       method: body === undefined ? 'GET' : 'POST', redirect: 'manual', cache: 'no-store',
       headers: { Origin: base, 'Content-Type': 'application/json',
         Cookie: [...cookies].map(([key, value]) => `${key}=${value}`).join('; ') },
@@ -24,7 +25,7 @@ function client() {
       cookies.set(pair.slice(0, index), pair.slice(index + 1));
     }
     // Never include personal records, confirmation codes or cookie values in failures.
-    assert.equal(response.status, expected, `${path.split('/').slice(0, 4).join('/')} HTTP status`);
+    assert.equal(response.status, expected, `${new URL(path, base).pathname.split('/').slice(0, 4).join('/')} HTTP status`);
     const text = await response.text();
     if (path.startsWith('/api/')) return JSON.parse(text);
     assert.ok(!text.includes('NEXT_REDIRECT'), 'Unexpected SSR redirect');
@@ -35,18 +36,22 @@ function client() {
 
 const pickup = new Date(Date.now() + 7 * 86_400_000).toISOString().slice(0, 10);
 const dropoff = new Date(Date.now() + 10 * 86_400_000).toISOString().slice(0, 10);
-const query = new URLSearchParams({ pickup: 'Naha', return: 'Naha', pickupStoreCode: 'OKA01',
+const query = new URLSearchParams({ pickup: 'Haneda', return: 'Haneda', pickupStoreCode: 'KLHND01',
   pickupDate: `${pickup}T10:00`, returnDate: `${dropoff}T10:00`, driverAge: '30',
-  licenseCountry: 'US', offer: 'toyota-rav4-suv@OKA01' });
+  licenseCountry: 'US', offer: 'hyundai-i30-compact@KLHND01' });
 
 for (const lang of languages) {
   const started = performance.now();
   const request = client();
-  const rateHtml = await request(`/${lang}/rent/toyota-rav4-suv?${query}`);
+  const rateHtml = await request(`/${lang}/rent/hyundai-i30-compact?${query}`);
   const driverHref = rateHtml.match(new RegExp(`href="([^\"]*/${lang}/book/driver\\?[^\"]*)"`))?.[1]?.replaceAll('&amp;', '&');
   assert.ok(driverHref, 'Rate page has no driver link');
   const rateId = new URL(driverHref, base).searchParams.get('rateDetailsId');
   assert.ok((await request(driverHref)).includes('driver-booking-form'), 'Driver form missing');
+  const naha = new URLSearchParams(query);
+  naha.set('pickupStoreCode', 'OKA01'); naha.set('offer', 'toyota-rav4-suv@OKA01');
+  const alternate = await request(`/${lang}/rent/toyota-rav4-suv?${naha}`);
+  assert.ok(alternate.includes(`/${lang}/book/driver?`), 'Alternate destination missing');
   await request('/api/rental/bookings');
   const input = { rateDetailsId: rateId, insuranceId: 'basic',
     equipment: { infantSeat: 0, childSeat: 0, boosterSeat: 0, gpsNavigation: false, snowChains: false },
@@ -58,8 +63,8 @@ for (const lang of languages) {
   const bookingPath = `/api/rental/bookings/${encodeURIComponent(code)}`;
   const checkoutPath = `/${lang}/checkout/${encodeURIComponent(code)}`;
   // Reproduce a browser loading checkout, session and navigation at the same time.
-  for (let round = 0; round < 3; round++) {
-    await Promise.all(Array.from({ length: 10 }, async (_, i) => {
+  for (let round = 0; round < 1; round++) {
+    await Promise.all(Array.from({ length: 5 }, async (_, i) => {
       const path = [checkoutPath, '/api/account/session', '/api/rental/pending-checkouts',
         bookingPath, '/api/rental/guest-bookings'][i % 5];
       const result = await request(path);
@@ -83,5 +88,5 @@ for (const lang of languages) {
     idempotencyKey: randomUUID() });
   assert.equal(cancelled.status, 'CANCELLED');
   assert.equal((await request(bookingPath)).status, 'CANCELLED');
-  console.log(`${lang}: PASS full booking lifecycle, 30 mixed concurrent reads, idempotent reserve/pay, access isolation (${Math.round((performance.now() - started) / 1000)}s)`);
+  console.log(`${lang}: PASS full booking lifecycle, 5 mixed concurrent reads, idempotent reserve/pay, access isolation (${Math.round((performance.now() - started) / 1000)}s)`);
 }

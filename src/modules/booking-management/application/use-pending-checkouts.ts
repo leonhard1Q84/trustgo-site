@@ -1,20 +1,20 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { usePathname } from 'next/navigation';
 import { useAuth } from '@/modules/customer-account/application/AuthContext';
 import { listPendingCheckouts } from './booking-store';
 import { subscribeBookingChanges } from './booking-events';
+import { createVisibleRefresh } from '@/shared/application/visible-refresh';
 import { holdSeconds, type PendingCheckout } from '../domain/pending-checkout';
 
 export function usePendingCheckouts() {
-  const pathname = usePathname();
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
   const [snapshot, setSnapshot] = useState<{ owner?: string; orders: PendingCheckout[] }>({ orders: [] });
   const [now, setNow] = useState(() => Date.now());
   const owner = user?.customer_id;
 
   useEffect(() => {
+    if (isLoading) return;
     let active = true;
     let revision = 0;
     const refresh = async () => {
@@ -27,22 +27,24 @@ export function usePendingCheckouts() {
         if (active && revision === current) setSnapshot({ owner, orders: [] });
       }
     };
-    const visibleRefresh = () => { if (document.visibilityState === 'visible') void refresh(); };
+    const visibleRefresh = createVisibleRefresh(() => { void refresh(); });
     void refresh();
     const unsubscribe = subscribeBookingChanges(() => void refresh());
     window.addEventListener('focus', visibleRefresh);
     document.addEventListener('visibilitychange', visibleRefresh);
-    const poll = setInterval(visibleRefresh, 15_000);
-    const tick = setInterval(() => setNow(Date.now()), 1000);
     return () => {
       active = false;
-      clearInterval(poll);
-      clearInterval(tick);
       unsubscribe();
       window.removeEventListener('focus', visibleRefresh);
       document.removeEventListener('visibilitychange', visibleRefresh);
     };
-  }, [pathname, owner]);
+  }, [owner, isLoading]);
+
+  useEffect(() => {
+    if (snapshot.owner !== owner || !snapshot.orders.length) return;
+    const tick = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(tick);
+  }, [snapshot, owner]);
 
   return snapshot.owner === owner ? snapshot.orders.filter(order => holdSeconds(order.paymentDeadline, now) > 0) : [];
 }

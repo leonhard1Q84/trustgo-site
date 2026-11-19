@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/modules/customer-account/public-api';
 import { listAccessibleBookings, type BookingListResult } from './booking-store';
 import { subscribeBookingChanges } from './booking-events';
+import { createVisibleRefresh } from '@/shared/application/visible-refresh';
 
 /** Reload from the server on return and invalidation; never persist order data. */
 export function useBookingList() {
@@ -35,16 +36,14 @@ export function useBookingList() {
         if (active && queued) { queued = false; void refresh(); }
       }
     };
-    const visibleRefresh = () => { if (document.visibilityState === 'visible') void refresh(); };
+    const visibleRefresh = createVisibleRefresh(() => { void refresh(); });
     void refresh();
-    const unsubscribe = subscribeBookingChanges(visibleRefresh);
+    const unsubscribe = subscribeBookingChanges(() => { void refresh(); });
     window.addEventListener('focus', visibleRefresh);
     document.addEventListener('visibilitychange', visibleRefresh);
-    const timer = setInterval(visibleRefresh, 15_000);
     return () => {
       active = false;
       unsubscribe();
-      clearInterval(timer);
       window.removeEventListener('focus', visibleRefresh);
       document.removeEventListener('visibilitychange', visibleRefresh);
     };
