@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   FilterX,
   RotateCcw,
@@ -9,38 +9,40 @@ import {
 } from 'lucide-react';
 import { type RouteLanguage } from '@/i18n/locales';
 import { getTranslation } from '@/i18n/useI18n';
+import { Button } from '@/shared/ui/button';
 import { FilterChip } from '@/shared/ui/filter-chip';
 import { FleetVehicle } from '@/modules/rental-search/domain/fleet-data';
+import {
+  CATEGORY_OPTIONS, EMPTY_FILTERS, FEATURE_GROUPS, countActiveFilters, isFilterSelected, matchesCategoryOption, toggleFilter, withOnly,
+  type CategoryOption, type FilterOption, type ResultFilters,
+} from '@/modules/rental-search/domain/result-filters';
 import { useSearchExpiry, SearchRefreshSkeleton } from '@/modules/rental-search/ui/SearchExpiryDialog';
 import type { StoreOffer } from '@/modules/rental-search/domain/store-offers';
-import { aggregateVehicleGroups, type VehicleGroup } from '@/modules/rental-search/application/vehicle-group-aggregator';
+import {
+  aggregateVehicleGroups, filterVehicleGroups, type VehicleGroup,
+} from '@/modules/rental-search/application/vehicle-group-aggregator';
 import { TravelVehicleIllustration } from '@/shared/ui/illustrations/TravelVehicleIllustration';
 import { SkylineHorizon } from '@/shared/ui/illustrations/SkylineHorizon';
 import { VehicleGroupCard } from './vehicle-group-card';
 import { useSearchNavigation } from './SearchNavigationProvider';
+import { ResultFiltersDialog } from './result-filters-dialog';
+import { ResultFilterPanel } from './result-filter-panel';
+import { CategoryChipsRow } from './category-tiles';
+import { FILTER_LABEL_KEYS } from './result-filter-labels';
 
-type CategoryFilter = 'all' | 'suv' | 'sedan' | 'people_mover';
-type SortKey = 'recommended' | 'price_low' | 'rating' | 'size';
+type SortKey = 'recommended' | 'price_low' | 'size';
 
-const CATEGORY_FILTERS: { key: CategoryFilter; label: string }[] = [
-  { key: 'all', label: 'rent_filter_all' },
-  { key: 'suv', label: 'rent_filter_suv' },
-  { key: 'sedan', label: 'rent_filter_sedan' },
-  { key: 'people_mover', label: 'rent_filter_people_mover' },
+/** High-frequency filters kept outside the Filters dialog (Design Guidelines §9). */
+const QUICK_FILTERS: FilterOption[] = [
+  { facet: 'features', value: 'free_cancellation' },
+  { facet: 'features', value: 'unlimited_mileage' },
+  { facet: 'features', value: 'deposit_free' },
+  { facet: 'transmission', value: 'Automatic' },
 ];
-
-function matchesCategory(car: FleetVehicle, filter: CategoryFilter) {
-  const category = car.category.toLowerCase();
-  if (filter === 'suv') return category.includes('suv');
-  if (filter === 'people_mover') return category.includes('van') || category.includes('people');
-  if (filter === 'sedan') return category.includes('sedan') || category.includes('hatchback') || category.includes('compact');
-  return true;
-}
 
 const SORTERS: Record<SortKey, (a: VehicleGroup, b: VehicleGroup) => number> = {
   recommended: () => 0,
   price_low: (a, b) => a.fromTotal - b.fromTotal,
-  rating: (a, b) => b.vehicle.rating - a.vehicle.rating,
   size: (a, b) => b.vehicle.seats - a.vehicle.seats || b.vehicle.bags - a.vehicle.bags,
 };
 
@@ -63,11 +65,9 @@ export function RentalResultsView({
   resultsCheckedAt, resultsExpiresAt,
 }: RentalResultsViewProps) {
   const t = (k: string) => getTranslation(k, lang);
-  const [category, setCategory] = useState<CategoryFilter>('all');
+  const [filters, setFilters] = useState<ResultFilters>(EMPTY_FILTERS);
   const [sortBy, setSortBy] = useState<SortKey>('recommended');
   const [noticeOpen, setNoticeOpen] = useState(true);
-  const [freeCancellation, setFreeCancellation] = useState(false);
-  const [depositFree, setDepositFree] = useState(false);
   const { refresh } = useSearchNavigation();
 
   const { searchExpiryDialog, isSearchRefreshing } = useSearchExpiry({
@@ -84,16 +84,34 @@ export function RentalResultsView({
     [vehicles, offers, rentalDays]
   );
 
-  const visible = useMemo(
-    () =>
-      aggregateVehicleGroups(
-        vehicles.filter((car) => matchesCategory(car, category)),
-        offers,
-        rentalDays,
-        { freeCancellation, depositFree }
-      ).sort(SORTERS[sortBy]),
-    [vehicles, offers, category, sortBy, rentalDays, freeCancellation, depositFree]
+  const countFor = useCallback(
+    (candidate: ResultFilters) => filterVehicleGroups(vehicles, offers, rentalDays, candidate).length,
+    [vehicles, offers, rentalDays]
   );
+
+  const availableFeatures = useMemo(
+    () => new Set<string>(FEATURE_GROUPS.flatMap((g) => g.options).filter((f) => countFor({ ...EMPTY_FILTERS, features: [f] }) > 0)),
+    [countFor]
+  );
+
+  /** Category is picked in the tiles row, so sidebar / sheet actions only touch the other facets. */
+  const sheetFacetsCount = countActiveFilters({ ...filters, category: [] });
+  const clearSheetFacets = (f: ResultFilters): ResultFilters => ({ ...EMPTY_FILTERS, category: f.category });
+
+  const categoryStats = useMemo(() => {
+    const base = filterVehicleGroups(vehicles, offers, rentalDays, { ...filters, category: [] });
+    return CATEGORY_OPTIONS.map((option) => {
+      const inCategory = base.filter((group) => matchesCategoryOption(group.vehicle, option));
+      return { option, count: inCategory.length };
+    });
+  }, [vehicles, offers, rentalDays, filters]);
+
+  const visible = useMemo(
+    () => filterVehicleGroups(vehicles, offers, rentalDays, filters).sort(SORTERS[sortBy]),
+    [vehicles, offers, rentalDays, filters, sortBy]
+  );
+
+  const quickFilters = QUICK_FILTERS.filter((option) => option.facet !== 'features' || availableFeatures.has(option.value));
 
   const detailQuery = useMemo(() => {
     const params = new URLSearchParams();
@@ -186,85 +204,124 @@ export function RentalResultsView({
             </div>
           )}
 
-          {/* Filters & sort */}
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div className="flex items-center gap-2 overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0 scrollbar-none">
-              {CATEGORY_FILTERS.map((f) => (
-                <FilterChip key={f.key} selected={category === f.key} onClick={() => setCategory(f.key)}>
-                  {t(f.label)}
-                </FilterChip>
-              ))}
-              <span className="mx-1 h-6 w-px shrink-0 bg-border" aria-hidden="true" />
-              <FilterChip selected={freeCancellation} onClick={() => setFreeCancellation((v) => !v)}>
-                {t('fleet_feature_free_cancellation')}
-              </FilterChip>
-              <FilterChip selected={depositFree} onClick={() => setDepositFree((v) => !v)}>
-                {t('results_policy_deposit_free')}
-              </FilterChip>
-            </div>
-            <label className="flex shrink-0 items-center gap-2 text-sm text-foreground-secondary">
-              <span>{t('results_sort_label')}</span>
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as SortKey)}
-                className="h-9 rounded-full border border-border-strong bg-background px-3 text-sm font-medium text-foreground focus:border-foreground focus:outline-none cursor-pointer"
-              >
-                <option value="recommended">{t('results_sort_recommended')}</option>
-                <option value="price_low">{t('results_sort_price')}</option>
-                <option value="rating">{t('results_sort_rating')}</option>
-                <option value="size">{t('results_sort_size')}</option>
-              </select>
-            </label>
-          </div>
-
-          <p className="mt-4 text-sm text-foreground-secondary">
-            {t('results_count').replace('{count}', String(visible.length))}
-          </p>
-
-          {/* 3. 筛选无匹配分支（Filtered to 0） */}
-          {visible.length === 0 ? (
-            <section
-              aria-label={t('results_filter_empty_title')}
-              className="mx-auto my-8 max-w-lg rounded-card border border-border/80 bg-background px-6 py-8 text-center"
+          <div className="lg:grid lg:grid-cols-[16rem_minmax(0,1fr)] lg:items-start lg:gap-8">
+            {/* PC: always-visible checkbox filters; H5 / Tablet use the sheet below */}
+            <aside
+              aria-label={t('rs_filters')}
+              className="hidden lg:sticky lg:top-40 lg:block lg:max-h-[calc(100dvh-11rem)] lg:overflow-y-auto lg:rounded-card lg:border lg:border-border lg:px-4"
             >
-              <FilterX className="mx-auto h-10 w-10 text-foreground-secondary" aria-hidden="true" />
-              <h2 className="mt-4 text-lg sm:text-xl font-bold tracking-tight text-foreground">
-                {t('results_filter_empty_title')}
-              </h2>
-              <p className="mt-2 text-sm text-foreground-secondary leading-relaxed">
-                {t('results_filter_empty_desc').replace('{count}', String(allGroups.length))}
-              </p>
-              <div className="mt-6 flex justify-center">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setCategory('all');
-                    setFreeCancellation(false);
-                    setDepositFree(false);
-                  }}
-                  className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-control bg-primary hover:bg-primary-hover text-white font-medium text-sm transition-all shadow-raised hover:shadow-overlay focus:outline-none focus:ring-2 focus:ring-primary/40 focus:ring-offset-2 active:scale-[0.99] cursor-pointer"
-                >
-                  <RotateCcw className="h-4 w-4" aria-hidden="true" />
-                  {t('results_clear_filters')}
-                </button>
+              <div className="flex items-center justify-between border-b border-border py-3">
+                <h2 className="text-base font-semibold text-foreground">{t('rs_filters')}</h2>
+                {sheetFacetsCount > 0 && (
+                  <Button variant="text" size="sm" className="h-8 px-1 text-sm" onClick={() => setFilters((f) => clearSheetFacets(f))}>
+                    {t('rs_filter_clear_all')}
+                  </Button>
+                )}
               </div>
-            </section>
-          ) : (
-            /* 4. 正常车辆列表卡片 */
-            <div className="mt-5 space-y-4">
-              {visible.map((group) => (
-                <VehicleGroupCard
-                  key={group.vehicle.id}
-                  group={group}
-                  lang={lang}
-                  rentalDays={rentalDays}
-                  buildHref={(offer) =>
-                    `/${lang}/rent/${group.vehicle.id}?${detailQuery}&offer=${encodeURIComponent(offer.offerId)}`
-                  }
+              <ResultFilterPanel
+                filters={filters}
+                onChange={setFilters}
+                countFor={countFor}
+                availableFeatures={availableFeatures}
+                t={t}
+                idPrefix="filter-side"
+              />
+            </aside>
+
+            <div className="min-w-0">
+              {/* Filters & sort */}
+              <div className="flex items-center gap-2 overflow-x-auto -mx-4 px-4 py-0.5 sm:-mx-6 sm:px-6 lg:hidden scrollbar-none">
+                <ResultFiltersDialog
+                  filters={filters}
+                  onApply={setFilters}
+                  countFor={countFor}
+                  availableFeatures={availableFeatures}
+                  t={t}
                 />
-              ))}
+                {quickFilters.map((option) => {
+                  const selected = isFilterSelected(filters, option);
+                  return (
+                    <FilterChip
+                      key={option.value}
+                      selected={selected}
+                      disabled={!selected && countFor(withOnly(filters, option)) === 0}
+                      onClick={() => setFilters((f) => toggleFilter(f, option))}
+                    >
+                      {t(FILTER_LABEL_KEYS[option.value])}
+                    </FilterChip>
+                  );
+                })}
+              </div>
+
+              <div className="mt-3 lg:mt-0">
+                <CategoryChipsRow
+                  stats={categoryStats}
+                  selected={filters.category.length === 1 ? (filters.category[0] as CategoryOption) : null}
+                  onSelect={(option) => setFilters((f) => ({ ...f, category: option ? [option] : [] }))}
+                  t={t}
+                />
+              </div>
+
+              <div className="mt-3 flex items-center justify-between gap-4 lg:mt-0">
+                <p className="text-sm text-foreground-secondary">
+                  {t('results_count').replace('{count}', String(visible.length))}
+                </p>
+                <label className="flex shrink-0 items-center gap-2 text-sm text-foreground-secondary">
+                  <span>{t('results_sort_label')}</span>
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value as SortKey)}
+                    className="h-9 rounded-full border border-border-strong bg-background px-3 text-sm font-medium text-foreground focus:border-foreground focus:outline-none cursor-pointer"
+                  >
+                    <option value="recommended">{t('results_sort_recommended')}</option>
+                    <option value="price_low">{t('results_sort_price')}</option>
+                    <option value="size">{t('results_sort_size')}</option>
+                  </select>
+                </label>
+              </div>
+
+              {/* 3. 筛选无匹配分支（Filtered to 0） */}
+              {visible.length === 0 ? (
+                <section
+                  aria-label={t('results_filter_empty_title')}
+                  className="mx-auto my-8 max-w-lg rounded-card border border-border/80 bg-background px-6 py-8 text-center"
+                >
+                  <FilterX className="mx-auto h-10 w-10 text-foreground-secondary" aria-hidden="true" />
+                  <h2 className="mt-4 text-lg sm:text-xl font-bold tracking-tight text-foreground">
+                    {t('results_filter_empty_title')}
+                  </h2>
+                  <p className="mt-2 text-sm text-foreground-secondary leading-relaxed">
+                    {t('results_filter_empty_desc').replace('{count}', String(allGroups.length))}
+                  </p>
+                  <div className="mt-6 flex justify-center">
+                    <button
+                      type="button"
+                      onClick={() => setFilters(EMPTY_FILTERS)}
+                      className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-control bg-primary hover:bg-primary-hover text-white font-medium text-sm transition-all shadow-raised hover:shadow-overlay focus:outline-none focus:ring-2 focus:ring-primary/40 focus:ring-offset-2 active:scale-[0.99] cursor-pointer"
+                    >
+                      <RotateCcw className="h-4 w-4" aria-hidden="true" />
+                      {t('results_clear_filters')}
+                    </button>
+                  </div>
+                </section>
+              ) : (
+                /* 4. 正常车辆列表卡片 */
+                <div className="mt-4 space-y-6">
+                  {visible.map((group) => (
+                    <VehicleGroupCard
+                      key={group.vehicle.id}
+                      group={group}
+                      lang={lang}
+                      rentalDays={rentalDays}
+                      buildHref={(offer) =>
+                        `/${lang}/rent/${group.vehicle.id}?${detailQuery}&offer=${encodeURIComponent(offer.offerId)}`
+                      }
+                    />
+                  ))}
+                </div>
+              )}
             </div>
-          )}
+          </div>
         </div>
       )}
     </>

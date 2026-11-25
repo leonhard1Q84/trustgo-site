@@ -171,10 +171,7 @@ export const koTranslations: Record<string, string> = {
   // Rent Page
   rent_page_title: '대여 가능 차량 및 요금 상세',
   rent_page_subtitle: '자기부담금 0원 완전면책 보장 옵션 포함. 즉시 예약 확정 지원.',
-  rent_filter_all: '전체 차종',
   rent_filter_suv: 'SUV 및 4WD',
-  rent_filter_sedan: '승용 세단',
-  rent_filter_people_mover: '다인승 미니밴',
   rent_disclaimer:
     '요금에는 기본 대인·대물 배상책임보험, 현지 세금 및 24시간 긴급출동 서비스가 포함되어 있습니다. 연료 규정: 가득 채워 반납 (Like-for-like).',
 
@@ -355,7 +352,6 @@ export const koTranslations: Record<string, string> = {
   results_sort_label: '정렬:',
   results_sort_recommended: '추천순',
   results_sort_price: '가격 낮은 순',
-  results_sort_rating: '고객 평점순',
   results_sort_size: '차량 크기순',
   results_rateplan_badge: '요금제: 인증된 면책금 제로 포함',
   results_empty_title: '해당 여정에 예약 가능한 차량이 없습니다',
@@ -377,7 +373,6 @@ export const koTranslations: Record<string, string> = {
   results_empty_tip_age_title: '운전자 연령 확인',
   results_empty_tip_age_desc:
     '만 25~64세 표준 운전자는 모든 차종을 제한 없이 대여할 수 있습니다.',
-  results_reviews_count: '(리뷰 {count}건)',
   results_daily_from: '일일 요금',
   results_total: '합계: {total} ({days}일)',
   results_taxes_included: '세금 및 수수료 포함',
@@ -391,7 +386,6 @@ export const koTranslations: Record<string, string> = {
   results_price_total: '총 {total}',
   results_price_per_day: '{price} / 일 · 세금 포함',
   results_view_deal: '상세 보기',
-  results_tag_nearest: '가장 가까움',
   results_tag_lowest: '최저가',
   results_select: '선택',
   common_opens_new_tab: '새 탭에서 열림',
@@ -766,6 +760,19 @@ export const koTranslations: Record<string, string> = {
   df_flight_hint: '항공편이 지연되더라도 도착 시까지 차량 예약을 안전하게 유지해 드립니다.',
   df_additional_driver_toggle: '추가 운전자 등록 (무료)',
   df_additional_driver_name: '추가 운전자 성명 (영문 성명)',
+  df_contact_info_title: '연락처 정보',
+  df_contact_info_subtitle: '예약 확인, 여정 업데이트 및 지점 연락에 사용됩니다.',
+  df_select_from_account: '계정에서 선택',
+  df_more: '더 보기',
+  df_saved_drivers_label: '계정의 운전자 정보',
+  df_saved_contacts_label: '계정의 연락처 정보',
+  df_select_driver_title: '주 운전자 선택',
+  df_select_contact_title: '연락처 선택',
+  df_manual_driver: '새 운전자 직접 입력',
+  df_manual_contact: '새 연락처 직접 입력',
+  df_source_account_profile: '계정 정보',
+  df_source_saved_traveler: '저장된 여행자',
+  df_default_badge: '기본값',
 
   // Booking View Sidebar
   bv_configured_trip: '선택 여정 요약',

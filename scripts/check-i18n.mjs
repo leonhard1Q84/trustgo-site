@@ -18,6 +18,7 @@ const sharedCatalogs = [
   'catalog-franchise.ts',
   'catalog-checkout.ts',
   'catalog-booking-management.ts',
+  'catalog-rental-search.ts',
 ].map((file) => join(sourceRoot, 'i18n', file));
 
 function extractKeys(content) {

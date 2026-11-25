@@ -48,7 +48,7 @@
 | 日历选中区间、进度条 | ✓ | — | — |
 | 导航当前项 | — | ✓ 加粗 + 2px 下划线 | — |
 | Header 次要入口（客服、查单） | — | ✓ Ghost / Secondary 按钮 | — |
-| 筛选 Chip 选中态 | — | ✓ `Text/Primary` 描边 / 深色底白字 | — |
+| 筛选 Chip / 复选框选中态 | ✓ `Primary-Strong` 描边（Chip 配 `Brand-Light` 底，复选框为实心对勾），不用深色填充 | — | — |
 | 图标、标题、规格信息 | — | ✓ | — |
 | 促销角标、评分星星 | — | — | ✓ |
 
@@ -99,7 +99,7 @@
 | --- | --- | --- | --- |
 | 主按钮 | 背景加深到 `Primary-Strong-Hover` | `scale(0.98)` | 2px `Brand/Primary` Focus Ring + 2px 偏移 |
 | 次要按钮 / 未选中 Chip | 背景变为 `Background/Muted` | 背景 `Background/Muted` | 同上 |
-| 已选中 Chip | 保留中性选中态，深色底适度变浅 | 同 Hover | 同上 |
+| 已选中 Chip | 保留品牌选中描边，描边加深为 `Primary-Strong-Hover` | 同默认选中态 | 同上 |
 | 内容卡片（整卡可点） | 图片 `scale(1.02)` **或** 标题下划线，二选一 | 不做位移 | 卡片外 2px Focus Ring |
 | 文字链接 / 文字操作 | `Primary-Strong` 文字 + 下划线 | 文字操作使用 `Primary-Light` 浅底 | 同上 |
 
@@ -140,7 +140,7 @@ flowchart TD
 | 取还车地点搜索 | 搜索栏下方锚定 Popover（宽 ≥ 480px） | 居中 Modal | 全屏 Sheet：顶部返回 + 自动聚焦输入框 |
 | 日期与时间选择 | 锚定 Popover，双月日历 | 居中 Modal，双月日历 | 全屏 Sheet，单月纵向滚动日历 + 吸底"Next / Done" |
 | 驾照签发国 / 驾驶人年龄 | 锚定 Popover | 锚定 Popover | 全屏 Sheet（可搜索列表） |
-| 筛选 Filters | 居中 Modal（宽 720px），底部固定"Clear all / Show N cars" | 同 PC | 全屏 Sheet，底部固定同样两个按钮 |
+| 筛选 Filters | 左侧吸顶复选框侧栏，勾选即时生效，不使用弹层 | 全屏 Sheet（复选框列表），底部固定"Clear all / Show N cars" | 同 Tablet |
 | 排序 | 下拉菜单 | 下拉菜单 | Bottom Sheet 单选列表 |
 | 保险说明、免赔额解释 | 居中 Modal（宽 640px） | 同 PC | 全屏 Sheet |
 | IDP / 证件样张 | 居中 Modal（宽 780px），内部左侧国家目录 + 右侧内容 | 居中 Modal，顶部国家 Tab | 全屏 Sheet，顶部横向国家 Chip |
@@ -183,7 +183,7 @@ flowchart TD
 | 规则 | 说明 |
 | --- | --- |
 | 首屏只放决策必需信息 | 车辆列表：车型、"or similar"、座位 / 行李 / 变速箱、免费取消、总价。车型代码、供应商门店类型等降为 `Type/Caption` |
-| 高频筛选外露，低频筛选收起 | 外露 3–5 个快速筛选 Chip（车型组、自动挡、免费取消、零免赔额）；其余放入"Filters"弹层 |
+| 高频筛选外露，低频筛选收起 | H5 外露 3–5 个快速筛选 Chip（如免费取消、不限里程、免押金、自动挡），其余放入"Filters" Sheet；PC 以常驻复选框侧栏展示全部筛选 |
 | 总价优先 | 列表与详情以**租期总价**为主价格，日均价为辅助信息，并标明是否含税费 |
 | 政策可读 | 取消政策用时间轴展示每个截止时间点与对应罚金；时间以门店当地时区显示并注明 |
 | 规格不用盒子 | 座位、行李、变速箱、燃油用"图标 + 文字"行内排列并以 `·` 分隔，不给每项加底色和描边 |

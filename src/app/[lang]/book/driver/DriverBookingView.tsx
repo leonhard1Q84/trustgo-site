@@ -16,7 +16,7 @@ import {
   calculateRatePricing,
   RateSummarySidebar,
 } from '@/modules/rate-details/public-api';
-import { DriverDetails, DriverForm } from '@/modules/reservation/public-api';
+import { DriverDetails, DriverForm, type AccountPrefillData } from '@/modules/reservation/public-api';
 import {
   createBooking,
   listGuestBookings,
@@ -37,6 +37,7 @@ import {
   AccountCreationCheckoutSection,
   CURRENT_TERMS_VERSION,
   CURRENT_PRIVACY_VERSION,
+  CustomerAccountService,
   useAuth,
 } from '@/modules/customer-account/public-api';
 
@@ -59,7 +60,8 @@ export function DriverBookingView({
 }: DriverBookingViewProps) {
   const { t } = useI18n(lang);
   const router = useRouter();
-  const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
+  const { user, isAuthenticated, isLoading: isAuthLoading } = useAuth();
+  const [accountPrefill, setAccountPrefill] = useState<(AccountPrefillData & {customerId: string}) | null>(null);
   const [createAccountRequested, setCreateAccountRequested] = useState(true);
   const [choiceReady, setChoiceReady] = useState(false);
   const choiceKey = `tg_account_choice_${trip.rateDetailsId}`;
@@ -81,6 +83,29 @@ export function DriverBookingView({
       /* Optional, non-personal draft choice. */
     }
   };
+
+  useEffect(() => {
+    if (isAuthLoading || !isAuthenticated || !user?.customer_id) return;
+    const customerId = user.customer_id;
+    let cancelled = false;
+    CustomerAccountService.getBookingPrefillData().then((data) => {
+      if (cancelled || !data.success) return;
+      setAccountPrefill({
+        customerId,
+        account: data.account,
+        profile: data.profile,
+        travelers: data.travelers,
+        contacts: data.contacts,
+      });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated, isAuthLoading, user?.customer_id]);
+
+  const activeAccountPrefill = isAuthenticated && accountPrefill?.customerId === user?.customer_id
+    ? accountPrefill
+    : null;
 
   const [driver, setDriver] = useState<DriverDetails>({
     title: 'Mr',
@@ -279,6 +304,7 @@ export function DriverBookingView({
           <DriverForm
             driver={driver}
             onChange={setDriver}
+            accountPrefill={activeAccountPrefill}
             footer={
               !isAuthLoading && !isAuthenticated && choiceReady ? (
                 <AccountCreationCheckoutSection
@@ -286,7 +312,7 @@ export function DriverBookingView({
                   driverEmail={driver.email}
                   createAccountRequested={createAccountRequested}
                   onToggleCreateAccount={toggleAccountCreation}
-                  variant="embedded"
+                  variant="card"
                 />
               ) : null
             }

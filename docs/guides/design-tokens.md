@@ -19,6 +19,8 @@
 | `Color/Brand/Primary-Strong` | `#0A6EBD` | 主按钮（CTA）填充、白底与 `Primary-Light` 底上的文字链接与选中态文字（白字 5.3:1，浅蓝底 4.7:1） | 大面积背景、导航高亮、标题、图标染色 |
 | `Color/Brand/Primary-Strong-Hover` | `#085CA0` | 主按钮 Hover / Pressed | — |
 | `Color/Brand/Primary-Light` | `#E8F4FC` | 选中卡片底色、信息提示底色 | 正文背景大面积铺色 |
+| `Color/Brand/Deep` | `#12335E` | 商务合作等企业级营销区的深色背景与渐变终点 | 文本、按钮、普通内容页大面积背景 |
+| `Color/Brand/Deep-Soft` | `#1E5AA8` | 深色企业级营销背景的渐变过渡色 | 文本、按钮、普通内容页背景 |
 
 > [!NOTE]
 > `#25A5E3` 仍是唯一的品牌主色，不得替换。`Primary-Strong` 是同色系的派生深色（色相由 200° 微移至 206° 并提高饱和度），既满足白字 4.5:1 的可读性要求，又避免单纯压暗带来的发灰"石油蓝"观感。
@@ -38,7 +40,7 @@
 
 | Token | 色值 | 用途 | 对比度（白底） |
 | --- | --- | --- | --- |
-| `Color/Text/Primary` | `#222222` | 标题、正文强调、价格、图标默认色、导航高亮、选中 Chip | ≈ 15.9:1 |
+| `Color/Text/Primary` | `#222222` | 标题、正文强调、价格、图标默认色、导航高亮 | ≈ 15.9:1 |
 | `Color/Text/Secondary` | `#5E5E5E` | 正文、说明文字 | ≈ 6.5:1 |
 | `Color/Text/Tertiary` | `#6A6A6A` | 辅助说明、元信息（日期、车型代码、"or similar"） | ≈ 5.4:1（Subtle 底 ≈ 5.1:1） |
 | `Color/Text/Disabled` | `#8A8A8A` | Placeholder、禁用文字、装饰性图标 | ≈ 3.5:1，不得承载需要阅读的信息 |

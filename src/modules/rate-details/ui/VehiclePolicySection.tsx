@@ -5,7 +5,6 @@ import {
   ShieldCheck,
   CheckCircle2,
   Clock,
-  CreditCard,
   Gauge,
   Fuel,
   Check,
@@ -47,12 +46,6 @@ export function VehiclePolicySection({
   const headline = cancellationHeadline(policy, trip, lang, t, now);
   const rows = cancellationRows(policy, trip, lang, t);
   const isNonRefundable = !policy.freeCancellationHours || policy.freeCancellationHours <= 0;
-
-  // Deposit calculation & formatting
-  const depositAmount = vehicle.depositAmount ?? 0;
-  const formattedDeposit = `${vehicle.currency}${new Intl.NumberFormat(
-    lang === 'zh' ? 'zh-Hant' : lang
-  ).format(depositAmount)}`;
 
   // Mileage calculation
   const km = vehicle.mileagePolicy.match(/(\d+)\s*km/)?.[1];
@@ -186,23 +179,7 @@ export function VehiclePolicySection({
         </div>
       </div>
 
-      {/* ── Subsection 3: Deposit Policy ── */}
-      <div className="border-b border-border pb-6 space-y-2">
-        <div className="flex items-center gap-2.5 text-title font-semibold text-foreground">
-          <CreditCard className="h-5 w-5 text-foreground shrink-0" aria-hidden="true" />
-          <h3>{t('rd_deposit_policy_title')}</h3>
-        </div>
-        <div className="text-body text-foreground-secondary leading-relaxed pl-7.5 space-y-1">
-          <p className="font-medium text-foreground">
-            {depositAmount === 0
-              ? t('rd_no_deposit')
-              : t('rd_deposit_brief').replace('{amount}', formattedDeposit)}
-          </p>
-          <p className="text-caption text-foreground-secondary">{t('rd_deposit_preauth_desc')}</p>
-        </div>
-      </div>
-
-      {/* ── Subsection 4: Mileage Policy ── */}
+      {/* ── Subsection 3: Mileage Policy ── */}
       <div className="border-b border-border pb-6 space-y-2">
         <div className="flex items-center gap-2.5 text-title font-semibold text-foreground">
           <Gauge className="h-5 w-5 text-foreground shrink-0" aria-hidden="true" />
@@ -214,7 +191,7 @@ export function VehiclePolicySection({
         </div>
       </div>
 
-      {/* ── Subsection 5: Fuel Policy ── */}
+      {/* ── Subsection 4: Fuel Policy ── */}
       <div className="space-y-2">
         <div className="flex items-center gap-2.5 text-title font-semibold text-foreground">
           <Fuel className="h-5 w-5 text-foreground shrink-0" aria-hidden="true" />

@@ -71,7 +71,7 @@ export const AccountCreationCheckoutSection: React.FC<AccountCreationCheckoutSec
       className={cn(
         isEmbedded
           ? 'border-t border-border pt-5 mt-6'
-          : 'rounded-card border border-border bg-background p-5',
+          : 'rounded-card border border-border bg-background p-6 sm:p-7',
         className
       )}
     >

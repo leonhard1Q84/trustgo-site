@@ -178,10 +178,7 @@ export const esTranslations: Record<string, string> = {
   rent_page_title: 'Flota disponible y desglose de tarifas',
   rent_page_subtitle:
     'Tarifas claras con opciones de exención total de franquicia. Confirmación de reserva inmediata.',
-  rent_filter_all: 'Todas las categorías',
   rent_filter_suv: 'SUV y 4x4',
-  rent_filter_sedan: 'Sedanes',
-  rent_filter_people_mover: 'Monovolúmenes',
   rent_disclaimer:
     'Las tarifas incluyen responsabilidad civil obligatoria, impuestos locales y asistencia en carretera 24/7. Política de combustible: Lleno a Lleno (Like-for-like).',
 
@@ -435,7 +432,6 @@ export const esTranslations: Record<string, string> = {
   results_sort_label: 'Ordenar por:',
   results_sort_recommended: 'Recomendados',
   results_sort_price: 'Precio: de menor a mayor',
-  results_sort_rating: 'Valoración',
   results_sort_size: 'Tamaño del vehículo',
   results_rateplan_badge: 'Plan de tarifa: Todo incluido sin franquicia',
   results_empty_title: 'No hay vehículos disponibles para este viaje',
@@ -457,7 +453,6 @@ export const esTranslations: Record<string, string> = {
   results_empty_tip_age_title: 'Verificar edad del conductor',
   results_empty_tip_age_desc:
     'Los conductores de 25 a 64 años tienen acceso a la flota completa de vehículos.',
-  results_reviews_count: '({count} reseñas)',
   results_daily_from: 'Tarifa diaria desde',
   results_total: 'Total: {total} ({days} días)',
   results_taxes_included: 'Impuestos y tasas incluidos',
@@ -471,7 +466,6 @@ export const esTranslations: Record<string, string> = {
   results_price_total: '{total} en total',
   results_price_per_day: '{price} / día · impuestos incl.',
   results_view_deal: 'Ver oferta',
-  results_tag_nearest: 'Más cercana',
   results_tag_lowest: 'Precio más bajo',
   results_select: 'Elegir',
   common_opens_new_tab: 'se abre en una pestaña nueva',
@@ -855,6 +849,19 @@ export const esTranslations: Record<string, string> = {
   df_flight_hint: 'Si tu vuelo se retrasa, mantendremos la reserva de tu vehículo tras la hora acordada.',
   df_additional_driver_toggle: 'Añadir un conductor adicional (Gratis)',
   df_additional_driver_name: 'Nombre completo del conductor adicional',
+  df_contact_info_title: 'Información de contacto',
+  df_contact_info_subtitle: 'Se usa para la confirmación de la reserva, actualizaciones del viaje y contacto con la oficina.',
+  df_select_from_account: 'Seleccionar desde la cuenta',
+  df_more: 'Más',
+  df_saved_drivers_label: 'Datos de conductor de tu cuenta',
+  df_saved_contacts_label: 'Datos de contacto de tu cuenta',
+  df_select_driver_title: 'Seleccionar conductor principal',
+  df_select_contact_title: 'Seleccionar datos de contacto',
+  df_manual_driver: 'Introducir un conductor nuevo manualmente',
+  df_manual_contact: 'Introducir nuevos datos de contacto manualmente',
+  df_source_account_profile: 'Perfil de la cuenta',
+  df_source_saved_traveler: 'Viajero guardado',
+  df_default_badge: 'Predeterminado',
 
   // Booking View Sidebar
   bv_configured_trip: 'Itinerario configurado',

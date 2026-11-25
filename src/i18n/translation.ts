@@ -8,9 +8,11 @@ import { rateDetailsTranslations } from './catalog-rate-details';
 import { checkoutTranslations } from './catalog-checkout';
 import { franchiseTranslations } from './catalog-franchise';
 import { bookingManagementTranslations } from './catalog-booking-management';
+import { rentalSearchTranslations } from './catalog-rental-search';
 
 export function getTranslation(key: string, lang: RouteLanguage): string {
   const language = routeToLanguage(lang);
+  if (rentalSearchTranslations[key]) return rentalSearchTranslations[key][language];
   if (bookingManagementTranslations[key]) return bookingManagementTranslations[key][language];
   if (checkoutTranslations[key]) return checkoutTranslations[key][language];
   if (franchiseTranslations[key]) return franchiseTranslations[key][language];

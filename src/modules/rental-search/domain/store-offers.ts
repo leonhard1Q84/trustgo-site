@@ -20,7 +20,12 @@ export interface StoreOffer {
   cancellationFreeHours: number; // 0 = non-refundable
   mileagePolicy: FleetVehicle['mileagePolicy'];
   fuelPolicy: FleetVehicle['fuelPolicy'];
+  selfService: boolean; // smart keybox pick-up & return
+  openAllHours: boolean; // depot counter open 24 hours
+  inclusions: OfferInclusion[]; // extras included in the rate at no charge
 }
+
+export type OfferInclusion = 'additional_driver' | 'gps' | 'winter_tyres';
 
 const LAX_HUB: Pick<StoreOffer, 'storeCode' | 'storeNames' | 'counterType'> = {
   storeCode: 'US-LAX-01',
@@ -46,7 +51,7 @@ const CENTURY_BLVD: Pick<StoreOffer, 'storeCode' | 'storeNames' | 'counterType'>
   counterType: 'Free Shuttle Bus',
 };
 
-type OfferSeed = Omit<StoreOffer, 'offerId' | 'storeCode' | 'storeNames' | 'counterType' | 'currency' | 'timeZone'> & {
+type OfferSeed = Omit<StoreOffer, 'offerId' | 'storeCode' | 'storeNames' | 'counterType' | 'currency' | 'timeZone' | 'selfService' | 'openAllHours' | 'inclusions'> & {
   store: typeof LAX_HUB;
 };
 
@@ -65,6 +70,9 @@ export const FLEET_STORE_OFFERS: StoreOffer[] = [...seeds.map(({ store, ...seed 
   ...store,
   currency: '$',
   timeZone: 'America/Los_Angeles',
+  selfService: false,
+  openAllHours: false,
+  inclusions: ['additional_driver'] as OfferInclusion[],
   offerId: `${seed.vehicleId}@${store.storeCode}`,
 })), ...createLocalStoreOffers()];
 

@@ -46,6 +46,8 @@
   --color-primary-foreground: #ffffff;
   --color-brand: #25a5e3;
   --color-brand-light: #e8f4fc;
+  --color-brand-deep: #12335e;
+  --color-brand-deep-soft: #1e5aa8;
   --color-ring: #25a5e3;
 
   /* Accent (warm) */

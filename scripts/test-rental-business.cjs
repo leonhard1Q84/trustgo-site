@@ -29,7 +29,8 @@ const { storeDirectory, isStoreEligible, findStoresWithinRadius } = require('../
 const { poiCatalog } = require('../src/modules/destination-search/poi-catalog.ts');
 const { buildDepotStoreInfo } = require('../src/modules/rate-details/domain/depot-info.ts');
 const { FLEET_STORE_OFFERS } = require('../src/modules/rental-search/domain/store-offers.ts');
-const { aggregateVehicleGroups } = require('../src/modules/rental-search/application/vehicle-group-aggregator.ts');
+const { aggregateVehicleGroups, filterVehicleGroups } = require('../src/modules/rental-search/application/vehicle-group-aggregator.ts');
+const { EMPTY_FILTERS, toggleFilter } = require('../src/modules/rental-search/domain/result-filters.ts');
 const { FLEET_VEHICLES } = require('../src/modules/rental-search/domain/fleet-data.ts');
 const { findResumableReservation } = require('../src/modules/reservation/application/checkout-recovery.ts');
 const { buildRateReturnHref } = require('../src/modules/reservation/application/rate-return.ts');
@@ -200,9 +201,29 @@ test('every eligible destination depot has bookable vehicle groups and combined 
     const offers = getAvailableStoreOffers({ ...form(), pickup: { label: store.localizedNames.EN, storeCode: store.storeCode } });
     assert.equal(aggregateVehicleGroups(FLEET_VEHICLES, offers, 3).length, 4, store.storeCode);
     assert.ok(offers.every(offer => offer.storeCode === store.storeCode && offer.distanceKm === 0));
-    assert.ok(aggregateVehicleGroups(FLEET_VEHICLES, offers, 3, { freeCancellation: true, depositFree: true }).length > 0);
+    assert.ok(aggregateVehicleGroups(FLEET_VEHICLES, offers, 3, ['free_cancellation', 'deposit_free']).length > 0);
   }
   assert.equal(new Set(FLEET_STORE_OFFERS.map(offer => offer.offerId)).size, FLEET_STORE_OFFERS.length);
+});
+test('result filters combine vehicle facets (OR within a facet) with offer features (all must hold)', () => {
+  const offers = getAvailableStoreOffers({ ...form(), pickup: { label: 'Tokyo', storeCode: 'KLDJ01' } });
+  const ids = filters => filterVehicleGroups(FLEET_VEHICLES, offers, 3, filters).map(group => group.vehicle.id).sort();
+  assert.deepEqual(ids(EMPTY_FILTERS).length, 4);
+  assert.deepEqual(ids({ ...EMPTY_FILTERS, transmission: ['Manual'] }), []);
+  assert.deepEqual(ids({ ...EMPTY_FILTERS, seats: ['eight_plus'] }), ['kia-carnival-van']);
+  assert.deepEqual(ids({ ...EMPTY_FILTERS, category: ['suv', 'mpv'] }), ['kia-carnival-van', 'toyota-rav4-suv']);
+  assert.deepEqual(ids({ ...EMPTY_FILTERS, category: ['premium'] }), ['tesla-model-y-electric']);
+  assert.deepEqual(ids({ ...EMPTY_FILTERS, category: ['economy'] }), ['hyundai-i30-compact']);
+  assert.deepEqual(ids({ ...EMPTY_FILTERS, features: ['unlimited_mileage', 'free_cancellation'] }), ['hyundai-i30-compact', 'toyota-rav4-suv']);
+  assert.deepEqual(ids({ ...EMPTY_FILTERS, features: ['self_service'] }).length, 4);
+  assert.deepEqual(ids({ ...EMPTY_FILTERS, features: ['winter_tyres'] }), []);
+  const toggled = toggleFilter(toggleFilter(EMPTY_FILTERS, { facet: 'seats', value: 'up_to_5' }), { facet: 'seats', value: 'up_to_5' });
+  assert.deepEqual(toggled, EMPTY_FILTERS);
+  const sapporo = storeDirectory.find(store => store.cityCode === 'sapporo' && isStoreEligible(store));
+  if (sapporo) {
+    const local = getAvailableStoreOffers({ ...form(), pickup: { label: 'Sapporo', storeCode: sapporo.storeCode } });
+    assert.equal(filterVehicleGroups(FLEET_VEHICLES, local, 3, { ...EMPTY_FILTERS, features: ['winter_tyres'] }).length, 4);
+  }
 });
 test('POI results match the destination picker service radius and actual distances', () => {
   for (const poi of poiCatalog.filter(poi => poi.status === 'active')) {

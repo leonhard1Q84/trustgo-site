@@ -209,6 +209,40 @@ export class CustomerAccountService {
     }
   }
 
+  static async getBookingPrefillData(): Promise<{
+    success: boolean;
+    account?: PublicAccountProfile;
+    profile?: CustomerProfileData;
+    travelers: PublicSavedTravelerProfile[];
+    contacts: SavedContactProfile[];
+    error?: string;
+  }> {
+    try {
+      const [profileResponse, travelersResponse, contactsResponse] = await Promise.all([
+        accountFetch('/api/account/profile', {cache: 'no-store'}),
+        accountFetch('/api/account/travelers', {cache: 'no-store'}),
+        accountFetch('/api/account/contacts', {cache: 'no-store'}),
+      ]);
+      if ([profileResponse, travelersResponse, contactsResponse].some((response) => response.status === 401)) {
+        return {success: false, travelers: [], contacts: [], error: 'AUTHENTICATED_REQUIRED'};
+      }
+      const profile = await profileResponse.json();
+      const travelers = await travelersResponse.json();
+      const contacts = await contactsResponse.json();
+      return {
+        success: profileResponse.ok && travelersResponse.ok && contactsResponse.ok,
+        account: profile.account,
+        profile: profile.profile,
+        travelers: travelers.travelers ?? [],
+        contacts: contacts.contacts ?? [],
+        error: !profileResponse.ok ? profile.error : undefined,
+      };
+    } catch (error) {
+      console.error('CustomerAccountService.getBookingPrefillData error:', error);
+      return {success: false, travelers: [], contacts: [], error: 'Network error'};
+    }
+  }
+
   static async saveTraveler(
     input: SavedTravelerInput,
     travelerId?: string,

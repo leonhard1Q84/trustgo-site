@@ -49,9 +49,14 @@ for (const lang of routeLanguages) {
     'franchise_ecosystem_title',
     'franchise_ecosystem_desc',
     'franchise_dashboard_channels',
-    'franchise_dashboard_pricing',
+    'franchise_dashboard_tab_operations',
     'franchise_dashboard_bookings',
     'franchise_dashboard_dispatch',
+    'franchise_dashboard_sync_title',
+    'franchise_dashboard_visual_caption',
+    'franchise_bi_dimension_stores',
+    'franchise_why_channels_metric',
+    'franchise_faq_support_title',
     'franchise_core_hub',
     'franchise_always_online',
   ]) {
@@ -67,7 +72,7 @@ for (const lang of routeLanguages) {
   ]) {
     assert.ok(form.includes(escape(t(key, lang))), `${lang} form missing ${key}`);
   }
-  assert.ok(page.includes(new Intl.NumberFormat(htmlLangMap[lang]).format(1284)));
+  assert.ok(!page.includes('1,284'), `${lang} page should not present illustrative order counts as live metrics`);
   assert.doesNotMatch(page + form, /franchise_[a-z_0-9]+/);
   if (['en', 'es', 'ko'].includes(lang)) assert.doesNotMatch(page + form, /\p{Script=Han}/u);
   console.log(`${lang}: localized page, form, number formatting and no unresolved keys passed`);

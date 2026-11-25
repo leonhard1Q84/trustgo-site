@@ -211,20 +211,6 @@ export const rateDetailsTranslations: Record<string, Record<Language, string>> =
     ES: 'Tu reserva se confirmará al instante una vez completado el proceso de reserva.',
     KO: '예약 절차 완료 후 예약이 즉시 확정됩니다.',
   },
-  rd_deposit_policy_title: {
-    EN: 'About deposits',
-    ZH: '押金政策',
-    JA: '保証金規定',
-    ES: 'Política de depósito',
-    KO: '보증금 안내',
-  },
-  rd_deposit_preauth_desc: {
-    EN: 'The preauthorization hold will be released after vehicle return and inspection. The available credit is typically restored by your issuing bank within 30–60 days.',
-    ZH: '門店於還車核驗後發起解除預授權。發卡銀行通常在 30–60 天內恢復可用額度。',
-    JA: '車両返却と確認の完了後、与信枠の解除が申請されます。通常30〜60日程度でカード発行会社により利用可能枠が復元されます。',
-    ES: 'La retención se liberará tras la devolución y revisión del vehículo. Por lo general, tu banco restablece el crédito disponible en un plazo de 30 a 60 días.',
-    KO: '차량 반납 및 확인 후 가승인이 해제됩니다. 카드사에 따라 통상 30~60일 이내에 이용 한도가 복원됩니다.',
-  },
   rd_mileage_policy_title: {
     EN: 'Mileage policy',
     ZH: '里程政策',
@@ -280,13 +266,6 @@ export const rateDetailsTranslations: Record<string, Record<Language, string>> =
     JA: '身分証明書と免許証の原本をご持参ください。国際免許証・翻訳文の要否は渡航先と免許発行地によります。',
     ES: 'Trae identificación y permiso originales. El permiso internacional o la traducción dependen del destino y del país emisor.',
     KO: '신분증과 면허증 원본을 지참하세요. 국제면허증·번역문 요건은 목적지와 면허 발급지에 따라 다릅니다.',
-  },
-  rd_deposit_brief: {
-    EN: '{amount} held at pick-up. Bring a physical credit card in the main driver’s name.',
-    ZH: '取車押金 {amount}。請攜帶主駕駛人本人的實體信用卡。',
-    JA: '受取時の保証金は{amount}。主運転者名義の実物クレジットカードが必要です。',
-    ES: 'Depósito de {amount} al recoger. Trae una tarjeta de crédito física a nombre del conductor principal.',
-    KO: '픽업 시 보증금 {amount}. 주 운전자 명의의 실물 신용카드를 지참하세요.',
   },
   rd_no_deposit: {
     EN: 'No security deposit is required for this rate.',

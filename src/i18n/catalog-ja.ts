@@ -168,10 +168,7 @@ export const jaTranslations: Record<string, string> = {
   // Rent Page
   rent_page_title: '利用可能な車種一覧と料金詳細',
   rent_page_subtitle: '自己免責ゼロの完全補償オプション付き。即時予約確定で安心。',
-  rent_filter_all: 'すべての車種',
   rent_filter_suv: 'SUV / 4WD',
-  rent_filter_sedan: 'セダン',
-  rent_filter_people_mover: 'ミニバン・多人数',
   rent_disclaimer:
     '料金には基本対人対物補償、現地諸税、24時間ロードサービスが含まれます。燃料規定：満タン返し（Like-for-like）。',
 
@@ -418,7 +415,6 @@ export const jaTranslations: Record<string, string> = {
   results_sort_label: '並び替え：',
   results_sort_recommended: 'おすすめ順',
   results_sort_price: '価格の安い順',
-  results_sort_rating: '評価順',
   results_sort_size: '車両サイズ順',
   results_rateplan_badge: '料金プラン：認定ゼロ免責込み',
   results_empty_title: 'この条件ではご利用いただける車両がありません',
@@ -440,7 +436,6 @@ export const jaTranslations: Record<string, string> = {
   results_empty_tip_age_title: '運転者の年齢を確認',
   results_empty_tip_age_desc:
     '25〜64歳の標準ドライバーはすべての車種カテゴリーをご利用いただけます。',
-  results_reviews_count: '（{count}件のレビュー）',
   results_daily_from: '1日あたり料金',
   results_total: '合計：{total}（{days}日間）',
   results_taxes_included: '税・手数料込み',
@@ -454,7 +449,6 @@ export const jaTranslations: Record<string, string> = {
   results_price_total: '合計 {total}',
   results_price_per_day: '{price} / 日・税込',
   results_view_deal: '詳細を見る',
-  results_tag_nearest: '最寄り',
   results_tag_lowest: '最安値',
   results_select: '選択',
   common_opens_new_tab: '新しいタブで開きます',
@@ -835,6 +829,19 @@ export const jaTranslations: Record<string, string> = {
   df_flight_hint: '航空便が遅延した場合でも、到着までお車のお取り置きを保証いたします。',
   df_additional_driver_toggle: '追加運転者を登録する（無料）',
   df_additional_driver_name: '追加運転者の氏名（フルネーム）',
+  df_contact_info_title: '連絡先情報',
+  df_contact_info_subtitle: '予約確認、旅程の更新、営業所からの連絡に使用します。',
+  df_select_from_account: 'アカウントから選択',
+  df_more: 'すべて見る',
+  df_saved_drivers_label: 'アカウントの運転者情報',
+  df_saved_contacts_label: 'アカウントの連絡先情報',
+  df_select_driver_title: '主運転者を選択',
+  df_select_contact_title: '連絡先を選択',
+  df_manual_driver: '新しい運転者を手動入力',
+  df_manual_contact: '新しい連絡先を手動入力',
+  df_source_account_profile: 'アカウント情報',
+  df_source_saved_traveler: '保存済みの旅行者',
+  df_default_badge: 'デフォルト',
 
   // Booking View Sidebar
   bv_configured_trip: '旅程情報',

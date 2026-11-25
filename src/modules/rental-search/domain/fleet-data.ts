@@ -9,8 +9,7 @@ export interface FleetVehicle {
   doors: number;
   gear: 'Automatic' | 'Manual';
   fuel: 'Petrol' | 'Hybrid' | 'Diesel' | 'Electric' | 'Petrol / Hybrid' | 'Diesel / Petrol';
-  rating: number;
-  reviewsCount: number;
+  segment: 'economy' | 'suv' | 'mpv' | 'premium';
   pricePerDay: number;
   currency: string;
   image: string;
@@ -18,7 +17,6 @@ export interface FleetVehicle {
     name: string;
     logo?: string;
     locationType: 'In-Terminal Counter' | 'Free Shuttle Bus' | 'Meet & Greet';
-    rating: number;
   };
   features: string[];
   depositAmount: number; // 0 = deposit-free
@@ -39,15 +37,13 @@ export const FLEET_VEHICLES: FleetVehicle[] = [
     doors: 5,
     gear: 'Automatic',
     fuel: 'Petrol / Hybrid',
-    rating: 4.9,
-    reviewsCount: 320,
+    segment: 'suv',
     pricePerDay: 58,
     currency: '$',
     image: '/images/vehicles/compact-suv.jpg',
     supplier: {
       name: 'TrustGo Prime Hub',
       locationType: 'In-Terminal Counter',
-      rating: 4.9,
     },
     features: [
       'Unlimited Mileage',
@@ -71,15 +67,13 @@ export const FLEET_VEHICLES: FleetVehicle[] = [
     doors: 5,
     gear: 'Automatic',
     fuel: 'Petrol',
-    rating: 4.8,
-    reviewsCount: 245,
+    segment: 'economy',
     pricePerDay: 42,
     currency: '$',
     image: '/images/vehicles/compact-hatchback.jpg',
     supplier: {
       name: 'TrustGo City Station',
       locationType: 'In-Terminal Counter',
-      rating: 4.8,
     },
     features: ['Fuel Efficient (5.8L/100km)', 'Instant Confirmation', 'Reverse Camera & Sensors'],
     depositAmount: 250,
@@ -98,15 +92,13 @@ export const FLEET_VEHICLES: FleetVehicle[] = [
     doors: 5,
     gear: 'Automatic',
     fuel: 'Diesel / Petrol',
-    rating: 4.95,
-    reviewsCount: 180,
+    segment: 'mpv',
     pricePerDay: 89,
     currency: '$',
     image: '/images/vehicles/family-mpv.jpg',
     supplier: {
       name: 'TrustGo Airport Fleet Center',
       locationType: 'Free Shuttle Bus',
-      rating: 4.9,
     },
     features: [
       'Dual Power Sliding Doors',
@@ -130,8 +122,7 @@ export const FLEET_VEHICLES: FleetVehicle[] = [
     doors: 5,
     gear: 'Automatic',
     fuel: 'Electric',
-    rating: 4.92,
-    reviewsCount: 156,
+    segment: 'premium',
     pricePerDay: 75,
     currency: '$',
     image:
@@ -139,7 +130,6 @@ export const FLEET_VEHICLES: FleetVehicle[] = [
     supplier: {
       name: 'TrustGo EV Experience Hub',
       locationType: 'In-Terminal Counter',
-      rating: 4.95,
     },
     features: [
       'Supercharging Capable',
