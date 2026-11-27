@@ -119,16 +119,27 @@ export interface Dictionary {
         rating: number;
       }>;
     };
-    inspirations: {
+    destinations: {
       sectionTitle: string;
-      sectionSubtitle: string;
-      exploreMore: string;
-      items: Array<{
+      viewAll: string;
+      cities: Array<{
+        slug: string;
+        hrefSuffix: string;
         title: string;
-        location: string;
+        hubs: string;
         image: string;
-        tag: string;
       }>;
+      pickupSteps: {
+        heading: string;
+        items: Array<{
+          id: 'book' | 'verify' | 'pickup';
+          stepNumber: '01' | '02' | '03';
+          hrefSuffix: string;
+          title: string;
+          desc: string;
+          cta: string;
+        }>;
+      };
     };
   };
   footer: {
@@ -320,33 +331,82 @@ export function getDictionary(locale: Locale): Dictionary {
           },
         ],
       },
-      inspirations: {
-        sectionTitle: t('inspirations_section_title'),
-        sectionSubtitle: t('inspirations_section_subtitle'),
-        exploreMore: t('inspirations_explore_more'),
-        items: [
+      destinations: {
+        sectionTitle: t('home_dest_title'),
+        viewAll: t('home_dest_view_all'),
+        cities: [
           {
-            title: t('inspirations_item1_title'),
-            location: t('inspirations_item1_location'),
-            image:
-              'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1200&q=80',
-            tag: t('inspirations_item1_tag'),
+            slug: 'tokyo',
+            hrefSuffix: 'car-rental/japan/tokyo',
+            title: t('home_dest_tokyo_title'),
+            hubs: t('home_dest_tokyo_hubs'),
+            image: '/images/cities/tokyo-landmark.jpg',
           },
           {
-            title: t('inspirations_item2_title'),
-            location: t('inspirations_item2_location'),
-            image:
-              'https://images.unsplash.com/photo-1527672809634-04ed36500acd?auto=format&fit=crop&w=1200&q=80',
-            tag: t('inspirations_item2_tag'),
+            slug: 'osaka',
+            hrefSuffix: 'car-rental/japan/osaka',
+            title: t('home_dest_osaka_title'),
+            hubs: t('home_dest_osaka_hubs'),
+            image: '/images/cities/osaka-landmark.jpg',
           },
           {
-            title: t('inspirations_item3_title'),
-            location: t('inspirations_item3_location'),
-            image:
-              'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=1200&q=80',
-            tag: t('inspirations_item3_tag'),
+            slug: 'okinawa',
+            hrefSuffix: 'car-rental/japan/okinawa',
+            title: t('home_dest_okinawa_title'),
+            hubs: t('home_dest_okinawa_hubs'),
+            image: '/images/cities/okinawa-landmark.jpg',
+          },
+          {
+            slug: 'sapporo',
+            hrefSuffix: 'car-rental/japan/sapporo',
+            title: t('home_dest_sapporo_title'),
+            hubs: t('home_dest_sapporo_hubs'),
+            image: '/images/cities/sapporo-landmark.jpg',
+          },
+          {
+            slug: 'fukuoka',
+            hrefSuffix: 'car-rental/japan/fukuoka',
+            title: t('home_dest_fukuoka_title'),
+            hubs: t('home_dest_fukuoka_hubs'),
+            image: '/images/cities/fukuoka-landmark.jpg',
+          },
+          {
+            slug: 'kyoto',
+            hrefSuffix: 'car-rental/japan/kyoto',
+            title: t('home_dest_kyoto_title'),
+            hubs: t('home_dest_kyoto_hubs'),
+            image: '/images/cities/kyoto-landmark.jpg',
           },
         ],
+        pickupSteps: {
+          heading: t('home_steps_heading'),
+          items: [
+            {
+              id: 'book',
+              stepNumber: '01',
+              hrefSuffix: 'help/faq/protection-and-liability',
+              title: t('home_steps_1_title'),
+              desc: t('home_steps_1_desc'),
+              cta: t('home_steps_1_cta'),
+            },
+            {
+              id: 'verify',
+              stepNumber: '02',
+              hrefSuffix: 'help/faq/driver-requirements',
+              title: t('home_steps_2_title'),
+              desc: t('home_steps_2_desc'),
+              cta: t('home_steps_2_cta'),
+            },
+            {
+              id: 'pickup',
+              stepNumber: '03',
+              hrefSuffix: 'locations',
+              title: t('home_steps_3_title'),
+              desc: t('home_steps_3_desc'),
+              cta: t('home_steps_3_cta'),
+            },
+          ],
+        },
       },
     },
     footer: {

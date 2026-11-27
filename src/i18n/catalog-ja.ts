@@ -126,20 +126,6 @@ export const jaTranslations: Record<string, string> = {
   reviews_item6_route: '羽田空港〜富士箱根ドライブ',
   reviews_item6_category: 'ハイブリッド SUV',
 
-  // Inspirations
-  inspirations_section_title: 'ドライブ旅行のインスピレーション',
-  inspirations_section_subtitle: '世界の絶景ロードと確かな車両手配で、忘れられない旅へ。',
-  inspirations_explore_more: 'すべての目的地を見る',
-  inspirations_item1_title: 'パシフィック・コースト・ハイウェイ',
-  inspirations_item1_location: 'アメリカ・カリフォルニア州',
-  inspirations_item1_tag: '夕日と海岸線',
-  inspirations_item2_title: 'グレートオーシャンロード',
-  inspirations_item2_location: 'オーストラリア・ビクトリア州',
-  inspirations_item2_tag: '海岸野生動物と大自然',
-  inspirations_item3_title: '北海道パノラマ・サーキット',
-  inspirations_item3_location: '日本・北海道',
-  inspirations_item3_tag: '四季折々の絶景',
-
   // Fleet Showcase
   fleet_title: '高品質・整備万全の厳選車両フリート',
   fleet_subtitle:

@@ -7,7 +7,7 @@ import { FloatingContactWidget } from '@/modules/franchise/public-api';
 import { SearchBar } from '@/modules/rental-search/ui/search-bar';
 import { ConfidenceFeatures } from '@/modules/home/ui/confidence-features';
 import { TravelerStories } from '@/modules/home/ui/traveler-stories';
-import { RoadTripInspirations } from '@/modules/home/ui/road-trip-inspirations';
+import { PopularDestinations } from '@/modules/home/ui/popular-destinations';
 
 export async function generateStaticParams() {
   return routeLanguages.map((lang) => ({ lang }));
@@ -101,8 +101,8 @@ export default async function HomePage({ params }: { params: Promise<{ lang: str
       {/* 3. Loved by Road Trippers - Real Traveler Stories (Verified Reviews) */}
       <TravelerStories dict={dict} />
 
-      {/* 4. Road Trip Inspirations */}
-      <RoadTripInspirations lang={lang} dict={dict} />
+      {/* 4. Popular Destinations & Pre-Trip Quick Guide */}
+      <PopularDestinations lang={lang} destinations={dict.home.destinations} />
 
       <FloatingContactWidget lang={lang} />
     </div>

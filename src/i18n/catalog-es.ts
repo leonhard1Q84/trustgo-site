@@ -131,21 +131,6 @@ export const esTranslations: Record<string, string> = {
   reviews_item6_route: 'Tokio Haneda a Monte Fuji y Hakone',
   reviews_item6_category: 'SUV Híbrido',
 
-  // Inspirations
-  inspirations_section_title: 'Inspiración para tu próxima ruta',
-  inspirations_section_subtitle:
-    'Rutas panorámicas seleccionadas con disponibilidad de flota garantizada.',
-  inspirations_explore_more: 'Ver todos los destinos',
-  inspirations_item1_title: 'Autopista de la Costa del Pacífico',
-  inspirations_item1_location: 'California, EE. UU.',
-  inspirations_item1_tag: 'Océano y atardeceres',
-  inspirations_item2_title: 'Great Ocean Road',
-  inspirations_item2_location: 'Victoria, Australia',
-  inspirations_item2_tag: 'Fauna costera y naturaleza',
-  inspirations_item3_title: 'Circuito Panorámico de Hokkaido',
-  inspirations_item3_location: 'Hokkaido, Japón',
-  inspirations_item3_tag: 'Cuatro estaciones',
-
   // Fleet Showcase
   fleet_title: 'Flota verificada para cada aventura',
   fleet_subtitle:

@@ -229,41 +229,6 @@ export const translations: Translations = {
   },
   reviews_item6_category: { EN: 'Hybrid SUV', ZH: '油電混動休旅' },
 
-  // Inspirations
-  inspirations_section_title: {
-    EN: 'Inspirations for Your Next Adventure',
-    ZH: '自駕靈感 · 精選風景公路',
-  },
-  inspirations_section_subtitle: {
-    EN: 'Curated scenic road trips with guaranteed vehicle availability.',
-    ZH: '探索全球經典自駕路線，精選網點支持，隨時啟程。',
-  },
-  inspirations_explore_more: {
-    EN: 'View All Destinations',
-    ZH: '查看更多目的地',
-  },
-  inspirations_item1_title: {
-    EN: 'Pacific Coast Highway',
-    ZH: '加州一號太平洋海岸公路',
-  },
-  inspirations_item1_location: {
-    EN: 'California, USA',
-    ZH: '美國 · 加利福尼亞',
-  },
-  inspirations_item1_tag: { EN: 'Ocean & Sunsets', ZH: '落日與海景' },
-  inspirations_item2_title: { EN: 'Great Ocean Road', ZH: '墨爾本大洋路' },
-  inspirations_item2_location: {
-    EN: 'Victoria, Australia',
-    ZH: '澳大利亞 · 維多利亞',
-  },
-  inspirations_item2_tag: { EN: 'Coastal Wildlife', ZH: '海岸與自然' },
-  inspirations_item3_title: {
-    EN: 'Hokkaido Panoramic Circuit',
-    ZH: '北海道四季全景環線',
-  },
-  inspirations_item3_location: { EN: 'Hokkaido, Japan', ZH: '日本 · 北海道' },
-  inspirations_item3_tag: { EN: 'Four Seasons', ZH: '四季之美' },
-
   // Fleet Showcase
   fleet_title: {
     EN: 'Verified Vehicles for Every Journey',

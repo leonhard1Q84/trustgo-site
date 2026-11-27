@@ -129,20 +129,6 @@ export const koTranslations: Record<string, string> = {
   reviews_item6_route: '도쿄 하네다 ~ 후지산·하코네',
   reviews_item6_category: '하이브리드 SUV',
 
-  // Inspirations
-  inspirations_section_title: '다음 여행을 위한 로드트립 추천',
-  inspirations_section_subtitle: '확실한 차량 배차와 함께 떠나는 세계의 아름다운 경관 도로 여행.',
-  inspirations_explore_more: '모든 여행지 보기',
-  inspirations_item1_title: '퍼시픽 코스트 하이웨이',
-  inspirations_item1_location: '미국 · 캘리포니아',
-  inspirations_item1_tag: '노을과 태평양 해안',
-  inspirations_item2_title: '그레이트 오션 로드',
-  inspirations_item2_location: '호주 · 빅토리아',
-  inspirations_item2_tag: '해안 야생동물과 대자연',
-  inspirations_item3_title: '홋카이도 파노라마 서킷',
-  inspirations_item3_location: '일본 · 홋카이도',
-  inspirations_item3_tag: '사계절의 풍경',
-
   // Fleet Showcase
   fleet_title: '모든 여정에 최적화된 안전 검증 차량',
   fleet_subtitle:
