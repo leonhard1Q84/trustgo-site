@@ -237,3 +237,161 @@
     }
   }
 }
+
+/* Payment loading spinner — native <progress> with conic-gradient trail (modern-web-guidance: spinner & motion) */
+@property --tg-arc-start {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+
+@property --tg-arc-end {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 145deg;
+}
+
+@property --tg-spinner-dash {
+  syntax: '*';
+  inherits: false;
+  initial-value: , tg-spinner-dash 2.4s ease-in-out infinite;
+}
+
+progress.tg-payment-spinner:indeterminate::-webkit-progress-bar {
+  display: none;
+  background: none;
+}
+
+progress.tg-payment-spinner:indeterminate::-webkit-progress-value {
+  display: none;
+  background: none;
+}
+
+progress.tg-payment-spinner:indeterminate::-moz-progress-bar {
+  display: none;
+  background: none;
+}
+
+progress.tg-payment-spinner:indeterminate {
+  --_from: calc(90deg + var(--tg-arc-start, 0deg));
+  --_to: calc(90deg + var(--tg-arc-end, 145deg));
+  --spinner-size: 64px;
+  --spinner-thickness: 3px;
+  --spinner-color: var(--color-primary);
+  --spinner-track: var(--color-border);
+  --spinner-duration: 1.35s;
+  --_used-spinner-duration: var(--spinner-duration);
+
+  display: block;
+  position: relative;
+  width: var(--spinner-size);
+  height: var(--spinner-size);
+  border-radius: 50%;
+  appearance: none;
+  background:
+    conic-gradient(
+      from var(--_from),
+      var(--spinner-color) calc(var(--_to) - var(--_from)),
+      transparent 0
+    )
+    var(--spinner-track);
+
+  @supports (background-clip: border-area) {
+    background-clip: border-area;
+    border: var(--spinner-thickness) solid transparent;
+    background-origin: border-box;
+  }
+
+  @supports not (background-clip: border-area) {
+    --_clip-boundary: calc(100% - var(--spinner-thickness));
+    mask-image: radial-gradient(
+      farthest-side,
+      transparent var(--_clip-boundary),
+      black var(--_clip-boundary)
+    );
+    border: 0;
+  }
+
+  @media (forced-colors: active) {
+    forced-color-adjust: none;
+    --spinner-color: CanvasText;
+    --spinner-track: Canvas;
+  }
+
+  animation:
+    tg-spinner-rotate var(--_used-spinner-duration) linear infinite
+    var(--tg-spinner-dash, );
+}
+
+progress.tg-payment-spinner.tg-payment-spinner-sm:indeterminate {
+  --spinner-size: 16px;
+  --spinner-thickness: 2px;
+  --spinner-color: currentColor;
+  --spinner-track: color-mix(in srgb, currentColor 28%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  progress.tg-payment-spinner:indeterminate {
+    --_used-spinner-duration: 6s;
+    --tg-spinner-dash: ;
+    --tg-arc-end: 145deg;
+    animation-duration: 6s !important;
+  }
+}
+
+@keyframes tg-spinner-rotate {
+  to {
+    rotate: 1turn;
+  }
+}
+
+@keyframes tg-spinner-dash {
+  from {
+    --tg-arc-start: 0deg;
+    --tg-arc-end: 20deg;
+  }
+  50% {
+    --tg-arc-start: 95deg;
+    --tg-arc-end: 345deg;
+  }
+  to {
+    --tg-arc-start: 360deg;
+    --tg-arc-end: 380deg;
+  }
+}
+
+.tg-payment-halo {
+  opacity: 0.45;
+  @media (prefers-reduced-motion: no-preference) {
+    animation: tg-payment-halo 2.2s var(--ease-enter) infinite;
+  }
+}
+
+@keyframes tg-payment-halo {
+  0%,
+  100% {
+    opacity: 0.35;
+    scale: 1;
+  }
+  50% {
+    opacity: 0.7;
+    scale: 1.07;
+  }
+}
+
+.tg-payment-check-in {
+  @media (prefers-reduced-motion: no-preference) {
+    animation: tg-payment-check-in 320ms var(--ease-enter) both;
+  }
+}
+
+@keyframes tg-payment-check-in {
+  from {
+    opacity: 0;
+    scale: 0.78;
+  }
+  to {
+    opacity: 1;
+    scale: 1;
+  }
+}

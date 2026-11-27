@@ -17,3 +17,7 @@ export {
 } from './ui/CardBrandIcons';
 
 export { CheckoutExpiryDialog } from './ui/CheckoutExpiryDialog';
+export {
+  PaymentProcessingDialog,
+  type PaymentProcessingPhase,
+} from './ui/PaymentProcessingDialog';

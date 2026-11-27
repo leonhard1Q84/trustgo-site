@@ -6,7 +6,6 @@ import {
   Lock,
   ShieldCheck,
   AlertCircle,
-  Loader2,
   CreditCard,
   ChevronDown,
   CheckCircle2,
@@ -166,7 +165,10 @@ export function StripeCardForm({
       </dl>
 
       {/* Card Information Unified Container (Stripe Elements Signature UI) */}
-      <div className="space-y-4">
+      <fieldset
+        disabled={isProcessing}
+        className="space-y-4 disabled:opacity-75 transition-opacity"
+      >
         <div>
           <div className="flex items-center justify-between mb-1.5">
             <label className="text-xs font-bold text-foreground">
@@ -311,7 +313,7 @@ export function StripeCardForm({
             </div>
           </div>
         </div>
-      </div>
+      </fieldset>
 
       {/* Terms Agreement Checkbox */}
       <div className="pt-1">
@@ -319,8 +321,9 @@ export function StripeCardForm({
           <input
             type="checkbox"
             checked={agreed}
+            disabled={isProcessing}
             onChange={(e) => setAgreed(e.target.checked)}
-            className="w-4 h-4 rounded text-primary border-border focus:ring-primary mt-0.5 cursor-pointer"
+            className="w-4 h-4 rounded text-primary border-border focus:ring-primary mt-0.5 cursor-pointer disabled:cursor-not-allowed"
           />
           <span className="text-xs text-foreground-secondary leading-relaxed">
             {t('ck_terms_agreement_text')
@@ -370,7 +373,10 @@ export function StripeCardForm({
         >
           {isProcessing ? (
             <>
-              <Loader2 className="w-4 h-4 animate-spin" />
+              <progress
+                aria-hidden="true"
+                className="tg-payment-spinner tg-payment-spinner-sm shrink-0"
+              />
               <span>{t('ck_authorizing')}</span>
             </>
           ) : (
@@ -418,7 +424,10 @@ export function StripeCardForm({
           >
             {isProcessing ? (
               <>
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <progress
+                  aria-hidden="true"
+                  className="tg-payment-spinner tg-payment-spinner-sm shrink-0"
+                />
                 <span>{t('ck_processing')}</span>
               </>
             ) : (
